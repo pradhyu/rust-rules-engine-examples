@@ -32,37 +32,9 @@ cargo build --release
 
 ## 💻 CLI Commands (`rules-engine-cli`)
 
-The repository includes a comprehensive CLI binary `rules-engine-cli` for running evaluations, batch rankings, rule inspections, and test suites.
+The repository includes a clean, production-grade CLI binary `rules-engine-cli` for evaluating profiles, batch rankings, and inspecting rule programs.
 
-### A. Run the Drools Parity Verification Test Suite
-Executes the automated matrix of 10+ regulatory edge cases (Skill Transferability, Spouse Factors, Cap Truncation, Relational Joins, Activation Groups, Temporal CEP Expiry, Null Safety, Quantifiers, Forward Chaining):
-```bash
-cargo run --bin rules-engine-cli -- test-suite
-```
-
-Output:
-```text
-┌─────────┬──────────────────┬─────────────────┬────────┬────────────┬─────────┐
-│ Test ID ┆ Scenario Name    ┆ Feature / Edge  ┆ Score  ┆ Status     ┆ Verdict │
-│         ┆                  ┆ Case Tested     ┆        ┆            ┆         │
-╞═════════╪══════════════════╪═════════════════╪════════╪════════════╪═════════╡
-│ TC-01   ┆ Skill Transfer.  ┆ CLB 9+ Matrix   ┆ 587.0  ┆ Eligible   ┆ PASSED  │
-│ TC-02   ┆ Spouse & PNP     ┆ PNP Bonus +600  ┆ 1108.0 ┆ Eligible   ┆ PASSED  │
-│ TC-03   ┆ Cap Truncation   ┆ 150 -> 100 Cap  ┆ 535.0  ┆ Eligible   ┆ PASSED  │
-│ TC-04   ┆ Relational Join  ┆ Revoked Sponsor ┆ 50.0   ┆ Ineligible ┆ PASSED  │
-│ TC-05   ┆ Activation Group ┆ XOR Tradeables  ┆ 70.0   ┆ Eligible   ┆ PASSED  │
-│ TC-06   ┆ Hard Age Gate    ┆ Age 46 Barred   ┆ 60.0   ┆ Ineligible ┆ PASSED  │
-│ TC-07   ┆ Temporal CEP     ┆ 730-day Window  ┆ 130.0  ┆ Ineligible ┆ PASSED  │
-│ TC-08   ┆ Null Safety      ┆ Null Spouse     ┆ 80.0   ┆ Eligible   ┆ PASSED  │
-│ TC-10   ┆ Quantifier       ┆ forall(clb>=7)  ┆ 50.0   ┆ Eligible   ┆ PASSED  │
-│ TC-11   ┆ Forward Chain    ┆ Derived Facts   ┆ 180.0  ┆ Eligible   ┆ PASSED  │
-└─────────┴──────────────────┴─────────────────┴────────┴────────────┴─────────┘
-  Results: 10 / 10 tests passed successfully.
-```
-
----
-
-### B. Evaluate a Single Applicant Profile against a Rule Folder
+### A. Evaluate a Single Applicant Profile against a Rule Folder
 Evaluate a candidate fact file against a **modular folder of rules** (the engine automatically scans and merges all `.yaml` and `.json` files in the folder):
 
 ```bash
@@ -92,7 +64,7 @@ cargo run --bin rules-engine-cli -- evaluate \
 
 ---
 
-### C. Run a Batch Selection & Ranking Draw against a Rule Folder
+### B. Run a Batch Selection & Ranking Draw against a Rule Folder
 Batch evaluate an entire directory of candidates against a **rule folder**, rank them by score, and apply an invitation cutoff score filter (e.g. Express Entry Draw):
 
 ```bash
@@ -125,7 +97,7 @@ Output:
 
 ---
 
-### D. Inspect a Rule Folder (Metadata, Caps, and Pipeline Phases)
+### C. Inspect a Rule Folder (Metadata, Caps, and Pipeline Phases)
 Inspect category budgets, max point caps, and all rules loaded across the files in a rule folder:
 
 ```bash
