@@ -1,0 +1,25 @@
+id: "canada_crs_express_entry"
+name: "Comprehensive Ranking System (CRS) - Express Entry"
+version: "2026.2"
+total_points_cap: 1200
+pass_mark_threshold: null
+
+categories:
+  core_human_capital:
+    name: "core_human_capital"
+    display_name: "Core / Human Capital Factors"
+    max_points: 500
+  spouse_factors:
+    name: "spouse_factors"
+    display_name: "Spouse / Common-Law Partner Factors"
+    max_points: 40
+  skill_transferability:
+    name: "skill_transferability"
+    display_name: "Skill Transferability Factors"
+    max_points: 100
+  additional_points:
+    name: "additional_points"
+    display_name: "Additional Factors"
+    max_points: 600
+
+rules: []

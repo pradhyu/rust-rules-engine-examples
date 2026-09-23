@@ -62,37 +62,42 @@ Output:
 
 ---
 
-### B. Evaluate a Single Applicant Profile
-Evaluate a candidate fact file against a declarative rule set with a full console audit breakdown:
+### B. Evaluate a Single Applicant Profile against a Rule Folder
+Evaluate a candidate fact file against a **modular folder of rules** (the engine automatically scans and merges all `.yaml` and `.json` files in the folder):
 
 ```bash
-# 1. Canada Express Entry CRS Evaluation
+# 1. Canada Express Entry CRS - Pointing to modular rules folder
 cargo run --bin rules-engine-cli -- evaluate \
-  --rules rules/canada_crs_express_entry.yaml \
+  --rules rules/canada_crs/ \
   --applicant applicants/tc01_tech_lead_single.yaml \
   --format table
 
-# 2. Output as structured JSON (for REST API / downstream ingestion)
+# 2. You can also use --rules-dir alias
 cargo run --bin rules-engine-cli -- evaluate \
-  --rules rules/uk_skilled_worker_points.yaml \
-  --applicant applicants/tc05_uk_competing_tradeable.yaml \
+  --rules-dir rules/canada_crs/ \
+  --applicant applicants/tc02_married_phd_researcher.yaml
+
+# 3. Output as structured JSON (for REST API / downstream ingestion)
+cargo run --bin rules-engine-cli -- evaluate \
+  --rules rules/canada_crs/ \
+  --applicant applicants/tc01_tech_lead_single.yaml \
   --format json
 
-# 3. Output as YAML
+# 4. Output as YAML
 cargo run --bin rules-engine-cli -- evaluate \
-  --rules rules/australia_subclass_189.yaml \
-  --applicant applicants/tc06_australia_age_barred.yaml \
+  --rules rules/canada_crs/ \
+  --applicant applicants/tc03_cap_overflow_tradesperson.yaml \
   --format yaml
 ```
 
 ---
 
-### C. Run a Batch Selection & Ranking Draw
-Batch evaluate an entire directory of candidates, rank them by score, and apply an invitation cutoff score filter (e.g. Express Entry Draw):
+### C. Run a Batch Selection & Ranking Draw against a Rule Folder
+Batch evaluate an entire directory of candidates against a **rule folder**, rank them by score, and apply an invitation cutoff score filter (e.g. Express Entry Draw):
 
 ```bash
 cargo run --bin rules-engine-cli -- batch \
-  --rules rules/canada_crs_express_entry.yaml \
+  --rules rules/canada_crs/ \
   --applicants-dir applicants/ \
   --cutoff 500
 ```
@@ -120,11 +125,11 @@ Output:
 
 ---
 
-### D. Inspect Rule Set Metadata, Caps, and Pipeline Phases
-Inspect category budgets, max point caps, and execution phases of any rule file:
+### D. Inspect a Rule Folder (Metadata, Caps, and Pipeline Phases)
+Inspect category budgets, max point caps, and all rules loaded across the files in a rule folder:
 
 ```bash
-cargo run --bin rules-engine-cli -- inspect --rules rules/canada_crs_express_entry.yaml
+cargo run --bin rules-engine-cli -- inspect --rules rules/canada_crs/
 ```
 
 ---

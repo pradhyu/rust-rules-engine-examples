@@ -157,3 +157,22 @@ fn test_tc11_forward_chaining_and_inferred_facts() {
     assert!(fired_ids.contains(&"ec_11_downstream_transferability_fire"));
     assert!(report.tags.contains(&"inferred_clb9_mastery".to_string()));
 }
+
+#[test]
+fn test_modular_directory_rule_loading() {
+    // Load all modular rule files from the directory rules/canada_crs/
+    let program = RuleProgram::from_path("rules/canada_crs").expect("Failed to load modular rule directory");
+    assert_eq!(program.id, "canada_crs_express_entry");
+    assert!(!program.categories.is_empty(), "Categories should be merged from directory files");
+    assert!(program.rules.len() >= 10, "Rules should be merged from all modular files in directory");
+
+    let app_content = std::fs::read_to_string("applicants/tc01_tech_lead_single.yaml").expect("Failed to read applicant");
+    let app_val: serde_json::Value = serde_yaml::from_str(&app_content).expect("Failed to parse applicant");
+    let context = FactContext::from_value(app_val);
+
+    let engine = Engine::new(program);
+    let report = engine.evaluate(&context).expect("Evaluation from modular directory failed");
+
+    assert!(report.is_eligible());
+    assert!(report.total_score >= 580.0, "Score should match single file evaluation (got {})", report.total_score);
+}

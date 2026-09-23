@@ -229,6 +229,26 @@ pub struct RuleProgram {
     pub rules: Vec<Rule>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct RuleListFragment {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub categories: HashMap<String, CategoryConfig>,
+    #[serde(default)]
+    pub total_points_cap: Option<f64>,
+    #[serde(default)]
+    pub pass_mark_threshold: Option<f64>,
+    #[serde(default)]
+    pub rules: Vec<Rule>,
+}
+
 impl RuleProgram {
     /// Parse a RuleProgram from YAML string
     pub fn from_yaml_str(yaml_str: &str) -> Result<Self, serde_yaml::Error> {
@@ -246,4 +266,119 @@ impl RuleProgram {
     pub fn from_json_str(json_str: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json_str)
     }
+
+    /// Parse a RuleProgram from a file path (JSON or YAML)
+    pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+        let p = path.as_ref();
+        let content = std::fs::read_to_string(p)?;
+        if p.extension().and_then(|e| e.to_str()) == Some("json") {
+            Ok(Self::from_json_str(&content)?)
+        } else {
+            Ok(Self::from_yaml_str(&content)?)
+        }
+    }
+
+    /// Load and merge ALL rule files from a directory into a single unified RuleProgram
+    pub fn from_directory(dir_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+        let dir = dir_path.as_ref();
+        if !dir.is_dir() {
+            return Err(format!("Path is not a directory: {}", dir.display()).into());
+        }
+
+        let mut entries: Vec<_> = std::fs::read_dir(dir)?
+            .filter_map(|e| e.ok())
+            .collect();
+        
+        // Sort filenames for deterministic load order
+        entries.sort_by_key(|a| a.file_name());
+
+        let mut unified = RuleProgram {
+            id: String::new(),
+            name: String::new(),
+            version: "1.0.0".to_string(),
+            description: None,
+            categories: HashMap::new(),
+            total_points_cap: None,
+            pass_mark_threshold: None,
+            rules: Vec::new(),
+        };
+
+        let mut loaded_files = 0;
+
+        for entry in entries {
+            let path = entry.path();
+            if path.is_file() {
+                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if ext == "yaml" || ext == "yml" || ext == "json" {
+                    let content = std::fs::read_to_string(&path)?;
+                    let fragment: Result<RuleListFragment, Box<dyn std::error::Error>> = if ext == "json" {
+                        serde_json::from_str(&content).map_err(|e| e.into())
+                    } else {
+                        serde_yaml::from_str(&content).map_err(|e| e.into())
+                    };
+
+                    if let Ok(frag) = fragment {
+                        if unified.id.is_empty() {
+                            if let Some(id) = frag.id {
+                                unified.id = id;
+                            }
+                        }
+                        if unified.name.is_empty() {
+                            if let Some(name) = frag.name {
+                                unified.name = name;
+                            }
+                        }
+                        if let Some(ver) = frag.version {
+                            unified.version = ver;
+                        }
+                        if frag.description.is_some() && unified.description.is_none() {
+                            unified.description = frag.description;
+                        }
+                        if frag.total_points_cap.is_some() && unified.total_points_cap.is_none() {
+                            unified.total_points_cap = frag.total_points_cap;
+                        }
+                        if frag.pass_mark_threshold.is_some() && unified.pass_mark_threshold.is_none() {
+                            unified.pass_mark_threshold = frag.pass_mark_threshold;
+                        }
+
+                        // Merge categories
+                        for (k, v) in frag.categories {
+                            unified.categories.insert(k, v);
+                        }
+
+                        // Append rules
+                        for r in frag.rules {
+                            unified.rules.push(r);
+                        }
+
+                        loaded_files += 1;
+                    }
+                }
+            }
+        }
+
+        if loaded_files == 0 {
+            return Err(format!("No valid rule files (.yaml, .yml, .json) found in directory: {}", dir.display()).into());
+        }
+
+        if unified.id.is_empty() {
+            unified.id = dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+        }
+        if unified.name.is_empty() {
+            unified.name = format!("Modular Rule Program ({})", unified.id);
+        }
+
+        Ok(unified)
+    }
+
+    /// Automatically load from either a file or a directory of rule files
+    pub fn from_path(path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+        let p = path.as_ref();
+        if p.is_dir() {
+            Self::from_directory(p)
+        } else {
+            Self::from_file(p)
+        }
+    }
 }
+

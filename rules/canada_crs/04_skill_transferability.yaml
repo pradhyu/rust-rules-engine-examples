@@ -1,0 +1,92 @@
+rules:
+  - id: "crs_transferability_edu_clb9"
+    name: "Skill Transferability: Post-Secondary Degree + CLB 9+"
+    phase: "scoring"
+    priority: 400
+    condition:
+      type: "all"
+      conditions:
+        - type: "compare"
+          path: "applicant.education.highest_degree"
+          op: "in"
+          value: ["two_or_more", "master", "doctorate"]
+        - type: "compare"
+          path: "computed.has_clb_9_plus"
+          op: "eq"
+          value: true
+    actions:
+      - type: "award_points"
+        category: "skill_transferability"
+        formula:
+          type: "fixed"
+          points: 50
+        reason: "Higher degree combined with CLB 9+ in all 4 abilities."
+
+  - id: "crs_transferability_foreign_work_clb9"
+    name: "Skill Transferability: Foreign Work Experience (3+ yrs) + CLB 9+"
+    phase: "scoring"
+    priority: 400
+    condition:
+      type: "all"
+      conditions:
+        - type: "compare"
+          path: "applicant.work_experience.foreign_years"
+          op: "gte"
+          value: 3
+        - type: "compare"
+          path: "computed.has_clb_9_plus"
+          op: "eq"
+          value: true
+    actions:
+      - type: "award_points"
+        category: "skill_transferability"
+        formula:
+          type: "fixed"
+          points: 50
+        reason: "3+ years foreign work experience combined with CLB 9+."
+
+  - id: "crs_transferability_foreign_work_canadian"
+    name: "Skill Transferability: Foreign Work Experience + Canadian Experience"
+    phase: "scoring"
+    priority: 400
+    condition:
+      type: "all"
+      conditions:
+        - type: "compare"
+          path: "applicant.work_experience.foreign_years"
+          op: "gte"
+          value: 3
+        - type: "compare"
+          path: "applicant.work_experience.domestic_years"
+          op: "gte"
+          value: 2
+    actions:
+      - type: "award_points"
+        category: "skill_transferability"
+        formula:
+          type: "fixed"
+          points: 50
+        reason: "3+ years foreign work combined with 2+ years Canadian work experience."
+
+  - id: "crs_transferability_trade_cert_clb7"
+    name: "Skill Transferability: Certificate of Qualification in Trades + CLB 7+"
+    phase: "scoring"
+    priority: 400
+    condition:
+      type: "all"
+      conditions:
+        - type: "compare"
+          path: "applicant.work_experience.has_trade_certification"
+          op: "eq"
+          value: true
+        - type: "compare"
+          path: "computed.has_clb_7_plus"
+          op: "eq"
+          value: true
+    actions:
+      - type: "award_points"
+        category: "skill_transferability"
+        formula:
+          type: "fixed"
+          points: 50
+        reason: "Provincial trade qualification certificate with CLB 7+."

@@ -253,6 +253,28 @@ RuleProgram
 
 ---
 
+### 4.1. Modular Rule Folder Architecture & Directory Ingestion
+
+In enterprise environments, complex rule programs are rarely maintained in a single monolithic file. Instead, rules are structured into **modular domain folders** (e.g. `rules/canada_crs/` containing separate files for `00_config.yaml`, `01_enrichment.yaml`, `02_human_capital.yaml`, `03_spouse.yaml`, `04_transferability.yaml`, `05_bonus.yaml`).
+
+```
+rules/canada_crs/
+├── 00_program_config.yaml      # Program metadata, categories, and max caps
+├── 01_enrichment.yaml          # Working memory inference & fact derivation
+├── 02_core_human_capital.yaml  # Age curves, education, and language proficiencies
+├── 03_spouse_factors.yaml      # Spouse education & language scores
+├── 04_skill_transferability.yaml # Cross-factor combinations & matrices
+└── 05_additional_points.yaml   # Provincial nominations, job offers, French bonus
+```
+
+#### Directory Ingestion Semantics
+1. **Multi-File Aggregation**: When pointing the engine or CLI to a folder path (e.g. `RuleProgram::from_path("rules/canada_crs")`), the loader scans all `*.yaml`, `*.yml`, and `*.json` files in alphabetical order.
+2. **Category & Cap Merging**: Category configurations, budget caps, and global pass thresholds are merged across all fragment files into a unified execution program.
+3. **Cross-File Priority & Phase Sorting**: Rules defined across different files in the folder are automatically scheduled into the unified phase pipeline (`validation` $\to$ `enrichment` $\to$ `scoring` $\to$ `capping`) and sorted deterministically by salience priority.
+
+---
+
+
 ## 5. Formal YAML Declarative Specification Examples
 
 ### 5.1. Canada CRS Express Entry (Full Enterprise Spec)

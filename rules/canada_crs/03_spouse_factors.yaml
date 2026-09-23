@@ -1,0 +1,64 @@
+rules:
+  - id: "crs_spouse_education"
+    name: "Spouse Education Level"
+    phase: "scoring"
+    priority: 480
+    condition:
+      type: "all"
+      conditions:
+        - type: "compare"
+          path: "applicant.marital_status"
+          op: "in"
+          value: ["married", "common_law"]
+        - type: "compare"
+          path: "applicant.spouse.education.highest_degree"
+          op: "exists"
+    actions:
+      - type: "award_points"
+        category: "spouse_factors"
+        formula:
+          type: "lookup"
+          path: "applicant.spouse.education.highest_degree"
+          mapping:
+            "doctorate": 10
+            "master": 10
+            "two_or_more": 9
+            "bachelor": 8
+            "three_year_post": 7
+            "two_year_post": 6
+            "one_year_post": 5
+            "secondary": 2
+          default: 0
+        reason: "Spouse education credentials points."
+
+  - id: "crs_spouse_language"
+    name: "Spouse Official Language Proficiency"
+    phase: "scoring"
+    priority: 480
+    condition:
+      type: "all"
+      conditions:
+        - type: "compare"
+          path: "applicant.marital_status"
+          op: "in"
+          value: ["married", "common_law"]
+        - type: "compare"
+          path: "applicant.spouse.language.first_official"
+          op: "exists"
+    actions:
+      - type: "award_points"
+        category: "spouse_factors"
+        formula:
+          type: "language_clb_band"
+          reading_path: "applicant.spouse.language.first_official.clb_reading"
+          writing_path: "applicant.spouse.language.first_official.clb_writing"
+          listening_path: "applicant.spouse.language.first_official.clb_listening"
+          speaking_path: "applicant.spouse.language.first_official.clb_speaking"
+          band_scores:
+            "10": 5
+            "9": 5
+            "8": 3
+            "7": 3
+            "6": 1
+            "5": 1
+        reason: "Spouse language proficiency points (Max 5/ability, 20 total)."

@@ -25,10 +25,10 @@ enum OutputFormat {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Evaluate a single applicant profile against a declarative rule set
+    /// Evaluate a single applicant profile against a folder of declarative rules
     Evaluate {
-        /// Path to the rule set YAML/JSON file
-        #[arg(short, long)]
+        /// Path to the rules folder / directory (or single rule file)
+        #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
 
         /// Path to the applicant profile YAML/JSON file
@@ -40,10 +40,10 @@ enum Commands {
         format: OutputFormat,
     },
 
-    /// Batch evaluate and rank all applicants in a directory against a rule set
+    /// Batch evaluate and rank all applicants in a directory against a folder of rules
     Batch {
-        /// Path to the rule set YAML/JSON file
-        #[arg(short, long)]
+        /// Path to the rules folder / directory (or single rule file)
+        #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
 
         /// Directory containing applicant profile YAML/JSON files
@@ -55,10 +55,10 @@ enum Commands {
         cutoff: Option<f64>,
     },
 
-    /// Inspect a declarative rule set (metadata, categories, caps, phases, and rules)
+    /// Inspect a declarative rules folder (metadata, categories, caps, phases, and all loaded rules)
     Inspect {
-        /// Path to the rule set YAML/JSON file
-        #[arg(short, long)]
+        /// Path to the rules folder / directory (or single rule file)
+        #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
     },
 
@@ -229,12 +229,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn load_rule_program(path: &Path) -> Result<RuleProgram, Box<dyn std::error::Error>> {
-    let content = fs::read_to_string(path)?;
-    if path.extension().and_then(|e| e.to_str()) == Some("json") {
-        Ok(RuleProgram::from_json_str(&content)?)
-    } else {
-        Ok(RuleProgram::from_yaml_str(&content)?)
-    }
+    RuleProgram::from_path(path)
 }
 
 fn load_fact_context(path: &Path) -> Result<FactContext, Box<dyn std::error::Error>> {
