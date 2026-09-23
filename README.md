@@ -158,9 +158,6 @@ cargo run --example canada_crs_demo
 
 # Working Memory Mutation & Forward Chaining Demo
 cargo run --example drools_inference_demo
-
-# Drools & DMN Decision Table Evaluation Demo (CSV Spreadsheet & Hit Policies)
-cargo run --example decision_table_demo
 ```
 
 ### Rust API Usage Example
@@ -210,21 +207,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 🎯 Drools Parity Highlights
 
-| Drools Capability | Rust Rules Engine Alternative |
-|---|---|
-| Multi-Fact Working Memory & Relational Joins | `WorkingMemory` & `Condition::MultiFactJoin` |
-| Forward Chaining & Inference (`insert` / `modify`) | Reactive Derived Facts & `Action::SetAttribute` |
-| Agenda Groups & Ruleflow Groups | Pipeline `phase` execution (`validation` $\to$ `enrichment` $\to$ `scoring` $\to$ `capping`) |
-| Activation Groups (XOR Mutual Exclusion) | `activation_group` (First-match / Best-match wins) |
-| Cycle Prevention (`no-loop`, `lock-on-active`) | `no_loop: true` & phase-locked activation registry |
-| Collection Accumulators (`from accumulate`) | `Action::Accumulate` (`sum_fte_years`, `min`, `max`, `count`) |
-| Temporal Reasoning & CEP (Drools Fusion) | `Condition::Temporal` sliding lookback & expiry windows |
-| Universal & Existential Quantifiers | `forall`, `exists`, `not_exists`, `min_count` |
-| Decision Tables & DMN Hit Policies | `DecisionTable` AST & Hit Policies (`First`, `Unique`, `CollectSum`, `CollectMax`, `CollectMin`, `CollectCount`, `Priority`, `Any`, `RuleOrder`) |
-| CSV / Spreadsheet Rule Ingestion | `DecisionTable::from_csv_str` with bracket/quote-aware expression parsing |
-| Modular Rule Composition (Folders) | `RuleProgram::from_directory` / `--rules <folder>` auto-merging |
-| 100% Explainability & Event Listeners | Built-in `AuditReport` with full execution DAG & condition traces |
-| Deterministic Latency | Native compiled Rust ($\le 50\,\mu\text{s}$, zero GC) |
+| Drools Capability | De Facto Status | Rust Rules Engine Implementation Note |
+|---|:---:|---|
+| Pattern Matching (LHS) | **Built-in** | `Condition::Compare` with operators (`eq`, `neq`, `gte`, `lte`, `between`, `in`, `matches_regex`) |
+| Dot-Path Traversal & Safe Nulls | **Built-in** | Non-panicking path resolution returning safe `Option` values (three-valued logic) |
+| Salience & Rule Priorities | **Built-in** | Rules sorted and executed in descending priority order |
+| Modular Rule Folders | **Built-in** | `RuleProgram::from_directory` auto-merges fragmented rules from directories |
+| 2D Score Matrix & Lookups | **Built-in** | `PointsFormula::MatrixLookup` & `PointsFormula::Lookup` |
+| Explainability & Audit Traces | **Built-in** | Zero-allocation `AuditReport` with itemized rule firing traces |
+| Multi-Fact Relational Joins | *Custom* | *Can be done, but you have to write cross-fact join logic* |
+| Temporal CEP Sliding Windows | *Custom* | *Can be done, but you have to write timestamp delta validation* |
+| Collection Accumulators (`sum`, `fte`) | *Custom* | *Can be done, but you have to write custom reducer actions* |
+| Forward Chaining Reactivity | *Custom* | *Can be done, but you have to write an agenda dependency tracker* |
+| Activation Groups (XOR Mutual) | *Custom* | *Can be done, but you have to write activation group state tracking* |
+| Spreadsheet Decision Tables | *Custom* | *Can be done, but you have to write spreadsheet parser & hit policy evaluators* |
 
 ---
 
@@ -238,30 +234,28 @@ rust-rules-engine-examples/
 │   └── DROOLS_PARITY_MATRIX.md # Exhaustive Drools Feature Parity Matrix
 ├── src/
 │   ├── core/                 # Core Engine, AST, Evaluator, Context, Audit
-│   │   ├── ast.rs            # Rule AST, DecisionTable, HitPolicy & Condition Nodes
+│   │   ├── ast.rs            # Rule AST, Action & Condition Nodes
 │   │   ├── audit.rs          # Structured Audit & Table Formatter
 │   │   ├── context.rs        # FactContext & Path Traversal
 │   │   ├── error.rs          # Typed Error Handling
-│   │   ├── evaluator.rs      # Engine Pipeline, Decision Table Evaluator & Formulas
+│   │   ├── evaluator.rs      # Engine Pipeline & Formula Evaluators
 │   │   └── mod.rs
 │   ├── immigration/          # Merit-Based Immigration Domain Models
 │   │   ├── models.rs         # Strongly Typed Applicant Profiles
 │   │   └── mod.rs
 │   ├── lib.rs                # Library Root Export
 │   └── main.rs               # CLI Tool (evaluate, batch, inspect, test-suite)
-├── rules/                    # Declarative YAML/JSON/CSV Rule Programs
+├── rules/                    # Declarative YAML/JSON Rule Programs
 │   ├── canada_crs/           # Modular Rule Folder (Config, Enrichment, Core, Spouse, Transferability, Bonus)
 │   ├── canada_crs_express_entry.yaml
 │   ├── australia_subclass_189.yaml
 │   ├── uk_skilled_worker_points.yaml
-│   ├── edge_cases_drools_parity_suite.yaml
-│   └── sample_decision_table.csv  # Spreadsheet Decision Table Example
+│   └── edge_cases_drools_parity_suite.yaml
 ├── applicants/               # Test Applicant Fact Profiles (YAML)
 ├── examples/                 # Programmatic Rust API Usage Examples
 │   ├── canada_crs_demo.rs
-│   ├── drools_inference_demo.rs
-│   └── decision_table_demo.rs # Multi-Column Decision Table & Hit Policies Demo
-└── tests/                    # Drools Edge Case & Decision Table Integration Tests
+│   └── drools_inference_demo.rs
+└── tests/                    # Drools Edge Case Verification Integration Tests
     └── drools_parity_edge_cases.rs
 ```
 

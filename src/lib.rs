@@ -3,8 +3,7 @@ pub mod immigration;
 
 pub use core::{
     Action, AuditReport, CategoryConfig, CategoryScoreBreakdown, ComparisonOperator, Condition,
-    DecisionTable, DecisionTableInput, DecisionTableOutput, DecisionTableRow, Engine, EngineError,
-    FactContext, FiredRuleRecord, HitPolicy, PointsFormula, Result, Rule, RuleProgram,
+    Engine, EngineError, FactContext, FiredRuleRecord, PointsFormula, Result, Rule, RuleProgram,
 };
 
 pub use immigration::{

@@ -5,8 +5,7 @@ pub mod error;
 pub mod evaluator;
 
 pub use ast::{
-    Action, CategoryConfig, ComparisonOperator, Condition, DecisionTable, DecisionTableInput,
-    DecisionTableOutput, DecisionTableRow, HitPolicy, PointsFormula, Rule, RuleProgram,
+    Action, CategoryConfig, ComparisonOperator, Condition, PointsFormula, Rule, RuleProgram,
 };
 pub use audit::{AuditReport, CategoryScoreBreakdown, FiredRuleRecord};
 pub use context::FactContext;
