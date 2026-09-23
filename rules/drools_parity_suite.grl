@@ -1,0 +1,174 @@
+// ============================================================================
+// DROOLS DRL / GRULE GRL FEATURE PARITY DEMONSTRATION SUITE
+// ============================================================================
+// This ruleset provides a 1:1 Grule Rule Language (GRL) specification demonstrating
+// every major Red Hat Drools / DRL capability implemented in the Rust Rules Engine.
+//
+// Parity Reference: docs/DROOLS_PARITY_MATRIX.md
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 1. HARD GATE & EARLY DISQUALIFICATION (Drools: Retract / Agenda Halt)
+// ----------------------------------------------------------------------------
+rule "gate_age_disqualification" "Reject candidate if over 45 years of age" salience 2000 {
+    /* @phase: "validation" */
+    /* @is_eligibility_gate: true */
+    when
+        Applicant.Age >= 45
+    then
+        Applicant.SetEligibility(false, "Applicant exceeds statutory maximum age threshold of 45 years.");
+        Log("DISQUALIFIED: Age limit exceeded (Age=" + Applicant.Age + ")");
+}
+
+// ----------------------------------------------------------------------------
+// 2. MULTI-FACT RELATIONAL JOINS (Drools: JobOffer(...) from $sponsor)
+// ----------------------------------------------------------------------------
+rule "relational_licensed_sponsor_join" "Match job offer with A-rated licensed sponsor" salience 1500 {
+    /* @phase: "scoring" */
+    /* @category: "mandatory_criteria" */
+    when
+        Applicant.JobOffer != nil &&
+        Applicant.JobOffer.HasOffer == true &&
+        Applicant.JobOffer.Sponsor != nil &&
+        Applicant.JobOffer.Sponsor.IsLicensed == true &&
+        Applicant.JobOffer.Sponsor.LicenseRating == "A_rated"
+    then
+        Applicant.AwardPoints("mandatory_criteria", 20.0);
+        Log("MATCHED: Verified A-rated sponsor job offer (+20 pts)");
+}
+
+// ----------------------------------------------------------------------------
+// 3. SAFE NULL DEREFERENCING & 3-VALUED LOGIC (Drools: null-safe !. navigation)
+// ----------------------------------------------------------------------------
+rule "null_safe_spouse_language" "Award spouse language points if present without panicking on single" salience 1200 {
+    /* @phase: "scoring" */
+    /* @category: "spouse_factors" */
+    when
+        Applicant.MaritalStatus == "married" &&
+        Applicant.Spouse != nil &&
+        Applicant.Spouse.Language != nil &&
+        Applicant.Spouse.Language.ClbLevel >= 7
+    then
+        Applicant.AwardPoints("spouse_factors", 20.0);
+        Log("MATCHED: Spouse achieved CLB 7+ in official language (+20 pts)");
+}
+
+// ----------------------------------------------------------------------------
+// 4. COLLECTION ACCUMULATION & AGGREGATION (Drools: accumulate)
+// ----------------------------------------------------------------------------
+rule "accumulate_canadian_fte_years" "Sum full-time equivalent years from work history array" salience 1100 {
+    /* @phase: "enrichment" */
+    when
+        Applicant.WorkHistory != nil &&
+        len(Applicant.WorkHistory) > 0
+    then
+        // Accumulate domestic FTE years
+        Applicant.CalculateAndSetFteYears("work_history", "is_domestic == true", "computed_domestic_years");
+        Log("ENRICHED: Computed domestic work experience = " + Applicant.GetAttribute("computed_domestic_years") + " years");
+}
+
+// ----------------------------------------------------------------------------
+// 5. INFERRED FACT INSERTION & FORWARD CHAINING (Drools: insertLogical / modify)
+// ----------------------------------------------------------------------------
+rule "infer_stem_qualification" "Detect STEM qualification and insert inferred working memory fact" salience 1000 {
+    /* @phase: "enrichment" */
+    /* @no_loop: true */
+    when
+        Applicant.Education != nil &&
+        Applicant.Education.IsStem == true &&
+        Applicant.JobOffer != nil &&
+        Applicant.JobOffer.NocCode matches "^21[0-9]{3}$"
+    then
+        Applicant.AddTag("stem_priority_candidate");
+        Applicant.SetAttribute("is_stem_priority", true);
+        Log("INFERRED FACT: Tagged candidate with 'stem_priority_candidate'");
+}
+
+rule "consume_inferred_stem_priority" "Award targeted draw bonus if STEM priority fact exists" salience 900 {
+    /* @phase: "scoring" */
+    /* @category: "additional_factors" */
+    when
+        Applicant.HasTag("stem_priority_candidate") == true &&
+        Applicant.JobOffer.AnnualSalary >= 75000.0
+    then
+        Applicant.AwardPoints("additional_factors", 50.0);
+        Log("MATCHED: Consumed inferred STEM fact (+50 pts bonus)");
+}
+
+// ----------------------------------------------------------------------------
+// 6. ACTIVATION GROUPS & XOR MUTUAL EXCLUSION (Drools: activation-group)
+// ----------------------------------------------------------------------------
+rule "tradeable_option_a_high_salary" "Option A: Salary >= 38,700" salience 800 {
+    /* @phase: "scoring" */
+    /* @category: "tradeable_criteria" */
+    /* @activation_group: "uk_tradeable_points" */
+    when
+        Applicant.JobOffer != nil &&
+        Applicant.JobOffer.AnnualSalary >= 38700.0 &&
+        Applicant.JobOffer.MeetsOccupationGoingRate == true
+    then
+        Applicant.AwardPoints("tradeable_criteria", 20.0);
+        Log("XOR FIRED: Option A Selected (+20 pts). Competing tradeable options suppressed.");
+}
+
+rule "tradeable_option_b_stem_phd" "Option B: STEM PhD + Salary >= 30,960" salience 750 {
+    /* @phase: "scoring" */
+    /* @category: "tradeable_criteria" */
+    /* @activation_group: "uk_tradeable_points" */
+    when
+        Applicant.Education != nil &&
+        Applicant.Education.HighestDegree == "doctorate" &&
+        Applicant.Education.IsStem == true &&
+        Applicant.JobOffer != nil &&
+        Applicant.JobOffer.AnnualSalary >= 30960.0
+    then
+        Applicant.AwardPoints("tradeable_criteria", 20.0);
+        Log("XOR FIRED: Option B Selected (+20 pts). Competing tradeable options suppressed.");
+}
+
+// ----------------------------------------------------------------------------
+// 7. TEMPORAL CEP SLIDING WINDOW (Drools Fusion: over window:time)
+// ----------------------------------------------------------------------------
+rule "temporal_language_test_validity" "Language test results expire after 730 days (2 years)" salience 700 {
+    /* @phase: "validation" */
+    /* @is_eligibility_gate: true */
+    when
+        Applicant.Language != nil &&
+        Applicant.Language.TestDate != nil &&
+        !Applicant.Language.TestDate.IsWithinPastDays(730)
+    then
+        Applicant.SetEligibility(false, "Official language test expired (> 24 months old).");
+        Log("GATE FAILED: Language test certificate has expired.");
+}
+
+// ----------------------------------------------------------------------------
+// 8. TWO-DIMENSIONAL MATRIX SCORING (Drools: DMN / Decision Table)
+// ----------------------------------------------------------------------------
+rule "skill_transferability_matrix" "Score Education x CLB Band 2D Matrix" salience 600 {
+    /* @phase: "scoring" */
+    /* @category: "skill_transferability" */
+    when
+        Applicant.Education != nil &&
+        Applicant.Language != nil &&
+        Applicant.Language.FirstOfficial != nil
+    then
+        Applicant.AwardMatrixPoints(
+            "skill_transferability",
+            Applicant.Education.HighestDegree,
+            Applicant.Language.FirstOfficial.OverallBand,
+            "Transferability: Education level combined with CLB language band"
+        );
+        Log("MATRIX SCORED: Skill transferability points awarded.");
+}
+
+// ----------------------------------------------------------------------------
+// 9. SUB-CATEGORY CAPPING & TRUNCATION (Drools: Post-processing Agenda Rule)
+// ----------------------------------------------------------------------------
+rule "cap_skill_transferability" "Cap Skill Transferability Category at 100 points maximum" salience 100 {
+    /* @phase: "capping" */
+    when
+        Applicant.GetCategoryScore("skill_transferability") > 100.0
+    then
+        Applicant.SetCategoryCappedScore("skill_transferability", 100.0);
+        Log("CAPPED: Skill transferability truncated to regulatory maximum 100.0 pts.");
+}

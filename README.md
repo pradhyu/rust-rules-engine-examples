@@ -129,6 +129,34 @@ cargo run --bin rules-engine-cli -- inspect --rules rules/canada_crs/
 
 ---
 
+### D. Interactive Terminal REPL Engine
+Start an interactive real-time rule evaluation REPL shell:
+
+```bash
+cargo run --bin rules-engine-cli -- repl --rules rules/canada_crs/
+```
+
+Within the REPL:
+- `:load <path|dir>` — Load and compile any rule file or modular directory
+- `:eval applicants/tc01_tech_lead_single.json` — Real-time evaluation with colored audit table
+- `:whatif applicants/tc01_tech_lead_single.json 485` — Run What-If pathway simulations
+- `:stats 10000` — Measure median (p50), 95th (p95), and 99th (p99) latency percentiles
+- `:inspect` — View category caps, pass threshold, and rules by phase
+
+---
+
+### E. Run Multi-Protocol Microservices (REST & gRPC)
+Launch a unified high-throughput REST (HTTP/JSON on port 8080) and gRPC (HTTP/2 on port 50051) microservice:
+
+```bash
+cargo run --bin rules-engine-cli -- serve \
+  --rules rules/canada_crs/ \
+  --rest-port 8080 \
+  --grpc-port 50051
+```
+
+---
+
 ## 🧪 Running Automated Tests
 
 Run the full suite of unit and integration tests:
@@ -143,22 +171,31 @@ cargo test --test drools_parity_edge_cases
 
 ---
 
-## 📖 Programmatic Rust Examples
+## 📖 Programmatic Rust Examples & Client Demos
 
-Run the standalone Rust code examples in `examples/`:
+Run standalone examples and protocol benchmarks:
 
 ```bash
-# Canada Express Entry Programmatic Evaluation Demo
-cargo run --example canada_crs_demo
+# 1. Multi-Protocol REST vs gRPC Real-Time Benchmark (1,000 requests)
+cargo run --example protocol_benchmark_client
 
-# Working Memory Mutation & Forward Chaining Demo
-cargo run --example drools_inference_demo
+# 2. Real-Time REST JSON Client Demo
+cargo run --example realtime_rest_client
 
-# Real-Time Candidate Advisor & What-If Pathway Simulations
+# 3. Real-Time gRPC Protobuf Client Demo
+cargo run --example realtime_grpc_client
+
+# 4. Multi-Format Ingestion (YAML, JSON, GRL) Demo
+cargo run --example rule_formats_demo
+
+# 5. Real-Time Candidate Advisor & What-If Pathway Simulations
 cargo run --example realtime_advisor_demo
 
-# Multi-Format Ingestion (YAML, JSON, GRL) Demo
-cargo run --example rule_formats_demo
+# 6. Working Memory Mutation & Forward Chaining Demo
+cargo run --example drools_inference_demo
+
+# 7. Canada Express Entry Programmatic Evaluation Demo
+cargo run --example canada_crs_demo
 ```
 
 ### Rust API Usage Example
@@ -233,36 +270,50 @@ rust-rules-engine-examples/
 ├── README.md                 # Project Overview & How-To Guide
 ├── docs/
 │   └── DROOLS_PARITY_MATRIX.md # Exhaustive Drools Feature Parity Matrix
+├── proto/
+│   └── rules_engine.proto    # gRPC & Protobuf Service Contract Definition
 ├── src/
-│   ├── core/                 # Core Engine, AST, Evaluator, Context, Audit
-│   │   ├── ast.rs            # Rule AST, Action & Condition Nodes
-│   │   ├── audit.rs          # Structured Audit & Table Formatter
-│   │   ├── context.rs        # FactContext & Path Traversal
+│   ├── core/                 # PLATFORM: Core Engine, AST, Evaluator, Context, Audit
+│   │   ├── ast.rs            # Declarative AST Nodes (Condition, Action, PointsFormula)
+│   │   ├── audit.rs          # Zero-Allocation Structured Audit & Table Formatter
+│   │   ├── context.rs        # FactContext & Safe Dot-Path Traversal (3-Valued Logic)
 │   │   ├── error.rs          # Typed Error Handling
-│   │   ├── evaluator.rs      # Engine Pipeline & Formula Evaluators
+│   │   ├── evaluator.rs      # Multi-Phase Execution Pipeline & Math Engines
 │   │   └── mod.rs
-│   ├── immigration/          # Merit-Based Immigration Domain Models
-│   │   ├── models.rs         # Strongly Typed Applicant Profiles
+│   ├── server/               # PLATFORM: Multi-Protocol Network Serving Layer
+│   │   ├── dto.rs            # Separated Request & Response Data Transfer Objects
+│   │   ├── rest.rs           # Axum HTTP/JSON REST API & Router
+│   │   ├── grpc.rs           # Tonic HTTP/2 gRPC Service Implementation
+│   │   └── mod.rs
+│   ├── repl.rs               # PLATFORM: Interactive Terminal REPL Engine
+│   ├── immigration/          # DOMAIN: Reference Merit-Based Immigration Models
+│   │   ├── models.rs         # Strongly Typed Domain Fact Structs
 │   │   └── mod.rs
 │   ├── lib.rs                # Library Root Export
-│   └── main.rs               # CLI Tool (evaluate, batch, inspect, test-suite)
-├── rules/                    # Declarative YAML/JSON/GRL Rule Programs
-│   ├── canada_crs/           # Modular Rule Folder (Config, Enrichment, Core, Spouse, Transferability, Bonus)
+│   └── main.rs               # CLI Tool (evaluate, batch, inspect, repl, serve)
+├── rules/                    # Declarative YAML / JSON / GRL Rule Programs
+│   ├── canada_crs/           # Modular Rule Folder (Config, Core, Transferability, Bonus)
 │   ├── canada_crs_express_entry.yaml
 │   ├── canada_crs_express_entry.grl
-│   ├── australia_subclass_189.yaml
 │   ├── uk_skilled_worker_points.yaml
 │   ├── uk_skilled_worker_points.json
 │   ├── uk_skilled_worker_points.grl
+│   ├── australia_subclass_189.yaml
+│   ├── drools_parity_suite.grl       # 1:1 GRL Specification for all 30+ Drools Features
 │   └── edge_cases_drools_parity_suite.yaml
 ├── applicants/               # Test Applicant Fact Profiles (YAML & JSON)
 │   ├── tc01_tech_lead_single.yaml
 │   └── tc01_tech_lead_single.json
-├── examples/                 # Programmatic Rust API Usage Examples
-│   ├── canada_crs_demo.rs
-│   ├── drools_inference_demo.rs
-│   ├── realtime_advisor_demo.rs # Real-Time Candidate Advisor & What-If Simulations
-│   └── rule_formats_demo.rs     # Multi-Format Ingestion (YAML, JSON, GRL)
+├── examples/                 # Programmatic Rust API & Protocol Client/Server Demos
+│   ├── protocol_benchmark_client.rs # REST vs gRPC Latency & Throughput Benchmark
+│   ├── realtime_rest_server.rs      # Standalone Axum REST Server
+│   ├── realtime_rest_client.rs      # REST Client (Evaluate, Batch, What-If)
+│   ├── realtime_grpc_server.rs      # Standalone Tonic gRPC Server
+│   ├── realtime_grpc_client.rs      # gRPC Client (Evaluate, Batch, What-If)
+│   ├── realtime_advisor_demo.rs     # Real-Time Candidate Advisor & What-If Simulations
+│   ├── rule_formats_demo.rs         # Multi-Format Ingestion (YAML, JSON, GRL)
+│   ├── drools_inference_demo.rs     # Working Memory Mutation & Forward Chaining
+│   └── canada_crs_demo.rs           # Programmatic Engine Pipeline Execution
 └── tests/                    # Drools Edge Case Verification Integration Tests
     └── drools_parity_edge_cases.rs
 ```

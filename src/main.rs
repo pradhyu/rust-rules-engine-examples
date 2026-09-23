@@ -1,14 +1,18 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
-use rust_rules_engine::{Engine, FactContext, RuleProgram};
+use rust_rules_engine::{
+    AppState, Engine, FactContext, RuleProgram, RulesGrpcService, RulesServiceServer,
+    create_rest_router, run_interactive_repl,
+};
 use std::fs;
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(
     name = "rules-engine-cli",
-    about = "A high-performance, deterministic Rules Engine in Rust for Merit-Based Immigration and Regulatory Systems",
+    about = "A high-performance, deterministic Rules Engine in Rust with REST, gRPC, and Interactive REPL support",
     version
 )]
 struct Cli {
@@ -61,12 +65,110 @@ enum Commands {
         #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
     },
+
+    /// Start the interactive terminal REPL for real-time rule evaluation & simulations
+    Repl {
+        /// Optional initial rule file or directory to load
+        #[arg(short, long, alias = "rules-dir")]
+        rules: Option<PathBuf>,
+    },
+
+    /// Run real-time high-throughput REST (HTTP/JSON) and gRPC (HTTP/2) microservices
+    Serve {
+        /// Path to the rules folder or file to load initially
+        #[arg(short, long, alias = "rules-dir", default_value = "rules/canada_crs/")]
+        rules: PathBuf,
+
+        /// HTTP REST API port
+        #[arg(long, default_value_t = 8080)]
+        rest_port: u16,
+
+        /// gRPC service port
+        #[arg(long, default_value_t = 50051)]
+        grpc_port: u16,
+    },
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Repl { rules } => {
+            let rules_str = rules.map(|p| p.to_string_lossy().to_string());
+            run_interactive_repl(rules_str)?;
+        }
+
+        Commands::Serve {
+            rules,
+            rest_port,
+            grpc_port,
+        } => {
+            let program = load_rule_program(&rules)?;
+            let program_name = program.name.clone();
+            let rule_count = program.rules.len();
+            let state = AppState::new(program);
+
+            let rest_addr: SocketAddr = format!("0.0.0.0:{}", rest_port).parse()?;
+            let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
+
+            println!(
+                "\n{}",
+                " 🚀 STARTING REAL-TIME RULES ENGINE MICROSERVICE 🚀 "
+                    .bold()
+                    .on_green()
+                    .black()
+            );
+            println!(
+                "  • Loaded Ruleset:  {} ({} rules)",
+                program_name.cyan().bold(),
+                rule_count
+            );
+            println!(
+                "  • REST Endpoint:   {}",
+                format!("http://localhost:{}/api/v1/evaluate", rest_port)
+                    .yellow()
+                    .bold()
+            );
+            println!(
+                "  • gRPC Service:    {}",
+                format!("http://localhost:{}", grpc_port).yellow().bold()
+            );
+            println!(
+                "  • Health Check:    {}",
+                format!("http://localhost:{}/health", rest_port).dimmed()
+            );
+            println!(
+                "  • Inspection:      {}\n",
+                format!("http://localhost:{}/api/v1/inspect", rest_port).dimmed()
+            );
+
+            let rest_router = create_rest_router(state.clone());
+            let grpc_service = RulesGrpcService::new(state);
+
+            let rest_handle = tokio::spawn(async move {
+                let listener = tokio::net::TcpListener::bind(rest_addr)
+                    .await
+                    .expect("Failed to bind REST port");
+                axum::serve(listener, rest_router)
+                    .await
+                    .expect("REST server error");
+            });
+
+            let grpc_handle = tokio::spawn(async move {
+                tonic::transport::Server::builder()
+                    .add_service(RulesServiceServer::new(grpc_service))
+                    .serve(grpc_addr)
+                    .await
+                    .expect("gRPC server error");
+            });
+
+            tokio::select! {
+                _ = rest_handle => {},
+                _ = grpc_handle => {},
+            }
+        }
+
         Commands::Evaluate {
             rules,
             applicant,

@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package rules_engine;
+
+// Real-Time Platform Rules Engine Service Definition
+service RulesService {
+  // Evaluate applicant fact against the active or specified ruleset
+  rpc Evaluate (EvaluateRequest) returns (EvaluateResponse);
+  
+  // Real-time batch evaluation and candidate ranking
+  rpc BatchEvaluate (BatchEvaluateRequest) returns (BatchEvaluateResponse);
+  
+  // What-If Advisor pathway simulation
+  rpc SimulateWhatIf (WhatIfRequest) returns (WhatIfResponse);
+
+  // Dynamic Hot-Reload of rules from any file or directory
+  rpc ReloadRules (ReloadRulesRequest) returns (ReloadRulesResponse);
+
+  // List active ruleset information and status
+  rpc InspectRules (InspectRulesRequest) returns (InspectRulesResponse);
+}
+
+// Request containing fact data
+message EvaluateRequest {
+  // Optional path to rules file or directory (falls back to default active ruleset)
+  string rules_path = 1;
+  // JSON serialized applicant fact model
+  string applicant_json = 2;
+}
+
+// Itemized record of a fired rule
+message FiredRule {
+  string rule_id = 1;
+  string rule_name = 2;
+  string category = 3;
+  double points_awarded = 4;
+  string reason = 5;
+  string phase = 6;
+}
+
+// Score breakdown by category
+message CategoryBreakdown {
+  string category_name = 1;
+  string display_name = 2;
+  double raw_score = 3;
+  double capped_score = 4;
+  double max_points = 5;
+}
+
+// Real-time evaluation audit report response
+message EvaluateResponse {
+  bool is_eligible = 1;
+  double total_score = 2;
+  double pass_mark_threshold = 3;
+  repeated string ineligibility_reasons = 4;
+  repeated FiredRule fired_rules = 5;
+  repeated CategoryBreakdown categories = 6;
+  repeated string tags = 7;
+  double latency_micros = 8;
+}
+
+// Batch evaluation request
+message BatchEvaluateRequest {
+  string rules_path = 1;
+  repeated string applicant_jsons = 2;
+  double cutoff_score = 3;
+}
+
+// Ranked candidate record
+message RankedCandidate {
+  int32 rank = 1;
+  string candidate_id = 2;
+  double total_score = 3;
+  bool is_eligible = 4;
+  string draw_status = 5;
+}
+
+// Batch evaluation response
+message BatchEvaluateResponse {
+  repeated RankedCandidate candidates = 1;
+  int32 total_evaluated = 2;
+  double latency_micros = 3;
+}
+
+// Real-time What-If simulation request
+message WhatIfRequest {
+  string rules_path = 1;
+  string applicant_json = 2;
+  double target_cutoff = 3;
+}
+
+// Pathway simulation option
+message PathwaySimulation {
+  string title = 1;
+  double points_gain = 2;
+  double projected_total = 3;
+  string description = 4;
+  bool qualifies_for_draw = 5;
+}
+
+// What-If response with actionable pathways
+message WhatIfResponse {
+  double current_score = 1;
+  double target_cutoff = 2;
+  bool currently_qualifies = 3;
+  double points_gap = 4;
+  repeated PathwaySimulation pathways = 5;
+}
+
+// Request to hot-reload rules from any path or directory
+message ReloadRulesRequest {
+  string rules_path = 1;
+}
+
+// Response from hot-reload operation
+message ReloadRulesResponse {
+  bool success = 1;
+  string message = 2;
+  string ruleset_id = 3;
+  string ruleset_name = 4;
+  string version = 5;
+  int32 rule_count = 6;
+}
+
+// Inspect active ruleset request
+message InspectRulesRequest {}
+
+// Inspect active ruleset response
+message InspectRulesResponse {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string description = 4;
+  double pass_mark_threshold = 5;
+  double total_points_cap = 6;
+  int32 rule_count = 7;
+  repeated CategoryBreakdown categories = 8;
+}

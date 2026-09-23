@@ -759,5 +759,90 @@ The test suite validates engine correctness across all 12 edge cases against exp
 
 1. **Zero Garbage Collection (Deterministic Latency)**: Sub-millisecond evaluation latency ($\le 50\,\mu\text{s}$ per applicant profile across 100+ rules).
 2. **Concurrent Safety (`Send + Sync`)**: RulePrograms and FactContexts are immutable during evaluation runs, allowing lock-free parallel batch evaluation across thousands of applicant threads.
-3. **Memory Footprint**: Minimal heap allocation during evaluation, suitable for embedded or serverless AWS Lambda / Cloud Run execution.
+3. **Memory Footprint**: Minimal heap allocation during evaluation (< 10MB footprint), suitable for high-throughput containerized microservices or embedded systems.
 4. **Serialization Parity**: 100% JSON Schema and YAML serialization support for integration with front-end rule visualizers and enterprise workflows.
+
+---
+
+## 8. Decoupled Platform Architecture & Rule Execution Engine
+
+The architecture strictly decouples the **Platform Execution Engine** from **Domain Rule Implementations**:
+
+```
++----------------------------------------------------------------------------------------------------+
+|                                    GENERIC RULES ENGINE PLATFORM                                   |
+|                                                                                                    |
+|  +---------------------------+   +---------------------------+   +------------------------------+  |
+|  | Multi-Format Ingestion    |   | Execution Engine Core     |   | Multi-Protocol Serving Layer |  |
+|  | - YAML Directory Scanner  |   | - 5-Phase Pipeline        |   | - REST HTTP/JSON (Axum)      |  |
+|  | - JSON AST Deserializer   |   | - Activation Groups (XOR) |   | - gRPC HTTP/2 (Tonic/Proto)  |  |
+|  | - GRL Parity Compiler    |   | - Temporal CEP Windows    |   | - Interactive REPL CLI       |  |
+|  +---------------------------+   +---------------------------+   +------------------------------+  |
+|                                                |                                                   |
+|                                                | Evaluates Arbitrary Fact Contexts                 |
+|                                                v                                                   |
+|  +----------------------------------------------------------------------------------------------+  |
+|  |                                  DYNAMIC RULESET REGISTRY & HOT-RELOAD                       |  |
+|  |  - Point to ANY rule directory or file (`--rules <path>`, `rules_path: "..."`)              |  |
+|  |  - Dynamic live hot-reload without downtime (`POST /api/v1/rules/reload`, `rpc ReloadRules`) |  |
+|  +----------------------------------------------------------------------------------------------+  |
++------------------------------------------------|---------------------------------------------------+
+                                                 |
+                                                 v
++----------------------------------------------------------------------------------------------------+
+|                                  DOMAIN RULE IMPLEMENTATIONS (POLICIES)                            |
+|                                                                                                    |
+|  +-------------------------------+  +-----------------------------+  +--------------------------+  |
+|  | Canada Express Entry CRS      |  | UK Skilled Worker Points    |  | Australia GSM Subclass   |  |
+|  | (`rules/canada_crs/`)         |  | (`rules/uk_skilled_worker`) |  | (`rules/australia_189`)  |  |
+|  +-------------------------------+  +-----------------------------+  +--------------------------+  |
++----------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 9. Multi-Protocol Real-Time Serving Platform
+
+The engine exposes three unified, zero-overhead interfaces for real-time rule evaluation:
+
+### 9.1. High-Performance JSON REST API (Axum)
+* `POST /api/v1/evaluate` — Evaluates a single candidate JSON fact payload against active or specified rules.
+* `POST /api/v1/batch` — Evaluates an array of candidates, ranks them descending by score, and applies invitation cutoff filters.
+* `POST /api/v1/simulate` — Runs real-time counterfactual "What-If" simulations (PNP, language improvement, work experience) and returns actionable pathways.
+* `POST /api/v1/rules/reload` — Hot-swaps the active in-memory ruleset without server downtime.
+* `GET  /api/v1/inspect` — Returns metadata, category point budgets, and rule counts.
+* `GET  /health` — Microservice health status check.
+
+### 9.2. High-Performance Binary gRPC Service (Tonic & HTTP/2)
+Defined via standard Protocol Buffers contract (`proto/rules_engine.proto`):
+* `rpc Evaluate (EvaluateRequest) returns (EvaluateResponse);`
+* `rpc BatchEvaluate (BatchEvaluateRequest) returns (BatchEvaluateResponse);`
+* `rpc SimulateWhatIf (WhatIfRequest) returns (WhatIfResponse);`
+* `rpc ReloadRules (ReloadRulesRequest) returns (ReloadRulesResponse);`
+* `rpc InspectRules (InspectRulesRequest) returns (InspectRulesResponse);`
+
+### 9.3. Interactive Terminal REPL Engine
+Built with `rustyline` supporting command history, real-time file evaluation, and What-If simulation loops:
+* `:load <path|dir>` — Load and compile any rule file or modular directory into the REPL.
+* `:eval <path>` — Evaluate applicant YAML/JSON file and render colored audit breakdown.
+* `:eval-json <json>` — Evaluate inline JSON facts.
+* `:whatif <path> [cutoff]` — Run real-time What-If simulation.
+* `:batch <dir> [cutoff]` — Batch rank all applicant files in a folder.
+* `:inspect` — Display active rule definitions, phases, salience priorities, and category point caps.
+* `:stats [iterations]` — Microsecond latency benchmarking (p50, p95, p99).
+
+---
+
+## 10. Data Transfer Object (DTO) & Schema Architecture
+
+All request and response data models are strictly isolated in `src/server/dto.rs` to maintain decoupled architecture:
+
+| Operation | Request DTO | Response DTO | Description |
+|---|---|---|---|
+| **Single Evaluation** | `EvaluateRequestDto` | `EvaluateResponseDto` | Candidate facts + rules path $\to$ itemized audit report & latency |
+| **Batch Ranking** | `BatchRequestDto` | `BatchResponseDto` | Candidate array + cutoff $\to$ ranked draw list |
+| **What-If Simulation** | `SimulateRequestDto` | `SimulateResponseDto` | Candidate baseline + cutoff $\to$ prioritized pathway recommendations |
+| **Ruleset Hot-Reload** | `ReloadRulesRequestDto` | `ReloadRulesResponseDto` | Rules path $\to$ confirmation of loaded rule count & version |
+| **Inspection** | N/A | `RulesetInspectionDto` | Returns category point caps and ruleset metadata |
+| **Health Check** | N/A | `HealthCheckResponseDto` | Service status, uptime, and engine version |
+```
