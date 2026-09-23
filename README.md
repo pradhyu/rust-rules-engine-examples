@@ -153,6 +153,9 @@ cargo run --example canada_crs_demo
 
 # Working Memory Mutation & Forward Chaining Demo
 cargo run --example drools_inference_demo
+
+# Real-Time Candidate Advisor & What-If Pathway Simulations
+cargo run --example realtime_advisor_demo
 ```
 
 ### Rust API Usage Example
@@ -249,7 +252,8 @@ rust-rules-engine-examples/
 ├── applicants/               # Test Applicant Fact Profiles (YAML)
 ├── examples/                 # Programmatic Rust API Usage Examples
 │   ├── canada_crs_demo.rs
-│   └── drools_inference_demo.rs
+│   ├── drools_inference_demo.rs
+│   └── realtime_advisor_demo.rs # Real-Time Candidate Advisor & What-If Simulations
 └── tests/                    # Drools Edge Case Verification Integration Tests
     └── drools_parity_edge_cases.rs
 ```
