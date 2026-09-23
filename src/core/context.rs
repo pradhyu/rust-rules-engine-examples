@@ -109,7 +109,10 @@ impl FactContext {
         }
 
         // Check computed attributes first if prefixed with "computed." or "derived."
-        if let Some(rest) = path.strip_prefix("computed.").or_else(|| path.strip_prefix("derived.")) {
+        if let Some(rest) = path
+            .strip_prefix("computed.")
+            .or_else(|| path.strip_prefix("derived."))
+        {
             return self.computed_attributes.get(rest).ok_or_else(|| {
                 EngineError::FactNotFound(format!("Computed attribute not found: {path}"))
             });
@@ -120,7 +123,9 @@ impl FactContext {
 
         for segment in segments {
             if current.is_null() {
-                return Err(EngineError::FactNotFound(format!("Null encountered in path '{path}' at segment '{segment}'")));
+                return Err(EngineError::FactNotFound(format!(
+                    "Null encountered in path '{path}' at segment '{segment}'"
+                )));
             }
 
             // Check if segment is an array index
@@ -128,7 +133,9 @@ impl FactContext {
                 match current {
                     Value::Array(arr) => {
                         current = arr.get(idx).ok_or_else(|| {
-                            EngineError::FactNotFound(format!("Array index out of bounds at '{path}'"))
+                            EngineError::FactNotFound(format!(
+                                "Array index out of bounds at '{path}'"
+                            ))
                         })?;
                     }
                     _ => {
@@ -136,7 +143,7 @@ impl FactContext {
                             path: path.to_string(),
                             expected: "Array".to_string(),
                             actual: format!("{:?}", current),
-                        })
+                        });
                     }
                 }
             } else {
@@ -151,7 +158,7 @@ impl FactContext {
                             path: path.to_string(),
                             expected: "Object".to_string(),
                             actual: format!("{:?}", current),
-                        })
+                        });
                     }
                 }
             }

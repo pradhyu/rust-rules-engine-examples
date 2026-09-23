@@ -16,10 +16,7 @@ pub enum EngineError {
     ConditionError(String),
 
     #[error("Invalid rule definition in rule '{rule_id}': {message}")]
-    InvalidRuleDefinition {
-        rule_id: String,
-        message: String,
-    },
+    InvalidRuleDefinition { rule_id: String, message: String },
 
     #[error("Matrix lookup failed: {0}")]
     MatrixLookupError(String),

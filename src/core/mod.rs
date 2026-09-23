@@ -11,4 +11,3 @@ pub use audit::{AuditReport, CategoryScoreBreakdown, FiredRuleRecord};
 pub use context::FactContext;
 pub use error::{EngineError, Result};
 pub use evaluator::Engine;
-

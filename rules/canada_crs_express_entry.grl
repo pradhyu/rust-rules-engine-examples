@@ -1,0 +1,107 @@
+// ============================================================================
+// Canada Comprehensive Ranking System (CRS) - Express Entry
+// Grule Rule Language (GRL) Implementation Specification
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// PHASE 1: WORKING MEMORY ENRICHMENT & DERIVED INFERENCES
+// ----------------------------------------------------------------------------
+
+rule "crs_infer_clb9_proficiency" "Infer High First Language Mastery (CLB 9+ in all 4 abilities)" salience 1000 {
+    when
+        Applicant.Language.FirstOfficial.Reading >= 9 &&
+        Applicant.Language.FirstOfficial.Writing >= 9 &&
+        Applicant.Language.FirstOfficial.Listening >= 9 &&
+        Applicant.Language.FirstOfficial.Speaking >= 9
+    then
+        Applicant.SetAttribute("derived.has_clb9_mastery", true);
+        Applicant.AddTag("clb9_language_mastery");
+        Log("Inferred: Applicant holds CLB 9+ across Reading, Writing, Listening, and Speaking");
+}
+
+rule "crs_infer_clb7_proficiency" "Infer Moderate First Language Mastery (CLB 7+ in all 4 abilities)" salience 950 {
+    when
+        Applicant.Language.FirstOfficial.Reading >= 7 &&
+        Applicant.Language.FirstOfficial.Writing >= 7 &&
+        Applicant.Language.FirstOfficial.Listening >= 7 &&
+        Applicant.Language.FirstOfficial.Speaking >= 7
+    then
+        Applicant.SetAttribute("derived.has_clb7_mastery", true);
+        Log("Inferred: Applicant holds CLB 7+ baseline threshold across all 4 abilities");
+}
+
+// ----------------------------------------------------------------------------
+// PHASE 2: CORE HUMAN CAPITAL FACTORS (Single vs Married)
+// ----------------------------------------------------------------------------
+
+rule "crs_core_age_single" "Core Human Capital: Age Points (Single Candidate, Peak 20-29)" salience 500 {
+    when
+        Applicant.MaritalStatus == "single" &&
+        Applicant.Age >= 20 &&
+        Applicant.Age <= 29
+    then
+        Applicant.AwardPoints("core_human_capital", 110.0);
+}
+
+rule "crs_core_education_master_single" "Core Human Capital: Master's Degree (Single Candidate)" salience 490 {
+    when
+        Applicant.MaritalStatus == "single" &&
+        Applicant.Education.HighestDegree in ["master", "professional_degree"]
+    then
+        Applicant.AwardPoints("core_human_capital", 135.0);
+}
+
+rule "crs_core_canadian_experience_single" "Core Human Capital: Canadian Work Experience (Single Candidate, 2 Years)" salience 480 {
+    when
+        Applicant.MaritalStatus == "single" &&
+        Applicant.WorkExperience.DomesticYears == 2
+    then
+        Applicant.AwardPoints("core_human_capital", 53.0);
+}
+
+// ----------------------------------------------------------------------------
+// PHASE 3: SKILL TRANSFERABILITY FACTORS (Max 100 Category Cap)
+// ----------------------------------------------------------------------------
+
+rule "crs_transferability_education_clb9" "Skill Transferability: Master's Degree + CLB 9+ Language Mastery" salience 300 {
+    when
+        Applicant.Education.HighestDegree in ["master", "doctorate", "two_or_more_degrees"] &&
+        Applicant.GetAttribute("derived.has_clb9_mastery") == true
+    then
+        Applicant.AwardPoints("skill_transferability", 50.0);
+}
+
+rule "crs_transferability_foreign_work_clb9" "Skill Transferability: 3+ Years Foreign Work Experience + CLB 9+" salience 290 {
+    when
+        Applicant.WorkExperience.ForeignYears >= 3 &&
+        Applicant.GetAttribute("derived.has_clb9_mastery") == true
+    then
+        Applicant.AwardPoints("skill_transferability", 50.0);
+}
+
+rule "crs_transferability_foreign_work_canadian_work" "Skill Transferability: 3+ Years Foreign Work + 2+ Years Canadian Work" salience 280 {
+    when
+        Applicant.WorkExperience.ForeignYears >= 3 &&
+        Applicant.WorkExperience.DomesticYears >= 2
+    then
+        Applicant.AwardPoints("skill_transferability", 50.0);
+}
+
+// ----------------------------------------------------------------------------
+// PHASE 4: ADDITIONAL BONUS FACTORS (Max 600 Category Cap)
+// ----------------------------------------------------------------------------
+
+rule "crs_bonus_provincial_nomination" "Enhanced Provincial Nomination Certificate" salience 200 {
+    when
+        Applicant.AdditionalFactors.ProvincialNomination == true
+    then
+        Applicant.AwardPoints("additional_factors", 600.0);
+        Applicant.AddTag("provincial_nominee");
+}
+
+rule "crs_bonus_sibling_in_canada" "Brother or Sister in Canada (Citizen or Permanent Resident)" salience 190 {
+    when
+        Applicant.AdditionalFactors.HasSiblingCitizenOrPr == true
+    then
+        Applicant.AwardPoints("additional_factors", 15.0);
+}

@@ -156,6 +156,9 @@ cargo run --example drools_inference_demo
 
 # Real-Time Candidate Advisor & What-If Pathway Simulations
 cargo run --example realtime_advisor_demo
+
+# Multi-Format Ingestion (YAML, JSON, GRL) Demo
+cargo run --example rule_formats_demo
 ```
 
 ### Rust API Usage Example
@@ -243,17 +246,23 @@ rust-rules-engine-examples/
 │   │   └── mod.rs
 │   ├── lib.rs                # Library Root Export
 │   └── main.rs               # CLI Tool (evaluate, batch, inspect, test-suite)
-├── rules/                    # Declarative YAML/JSON Rule Programs
+├── rules/                    # Declarative YAML/JSON/GRL Rule Programs
 │   ├── canada_crs/           # Modular Rule Folder (Config, Enrichment, Core, Spouse, Transferability, Bonus)
 │   ├── canada_crs_express_entry.yaml
+│   ├── canada_crs_express_entry.grl
 │   ├── australia_subclass_189.yaml
 │   ├── uk_skilled_worker_points.yaml
+│   ├── uk_skilled_worker_points.json
+│   ├── uk_skilled_worker_points.grl
 │   └── edge_cases_drools_parity_suite.yaml
-├── applicants/               # Test Applicant Fact Profiles (YAML)
+├── applicants/               # Test Applicant Fact Profiles (YAML & JSON)
+│   ├── tc01_tech_lead_single.yaml
+│   └── tc01_tech_lead_single.json
 ├── examples/                 # Programmatic Rust API Usage Examples
 │   ├── canada_crs_demo.rs
 │   ├── drools_inference_demo.rs
-│   └── realtime_advisor_demo.rs # Real-Time Candidate Advisor & What-If Simulations
+│   ├── realtime_advisor_demo.rs # Real-Time Candidate Advisor & What-If Simulations
+│   └── rule_formats_demo.rs     # Multi-Format Ingestion (YAML, JSON, GRL)
 └── tests/                    # Drools Edge Case Verification Integration Tests
     └── drools_parity_edge_cases.rs
 ```

@@ -1,6 +1,4 @@
-use crate::core::ast::{
-    Action, ComparisonOperator, Condition, PointsFormula, Rule, RuleProgram,
-};
+use crate::core::ast::{Action, ComparisonOperator, Condition, PointsFormula, Rule, RuleProgram};
 use crate::core::audit::{AuditReport, CategoryScoreBreakdown, FiredRuleRecord};
 use crate::core::context::FactContext;
 use crate::core::error::{EngineError, Result};
@@ -38,7 +36,7 @@ impl Engine {
 
         // Standard phase ordering
         let phase_order = ["validation", "enrichment", "scoring", "capping", "verdict"];
-        
+
         // Group enabled rules by phase
         let mut rules_by_phase: HashMap<String, Vec<&Rule>> = HashMap::new();
         for rule in &self.program.rules {
@@ -54,19 +52,15 @@ impl Engine {
         for phase in phase_order {
             if let Some(rules) = rules_by_phase.get_mut(phase) {
                 // Sort by priority descending (salience), tie-break deterministically by ID
-                rules.sort_by(|a, b| {
-                    b.priority
-                        .cmp(&a.priority)
-                        .then_with(|| a.id.cmp(&b.id))
-                });
+                rules.sort_by(|a, b| b.priority.cmp(&a.priority).then_with(|| a.id.cmp(&b.id)));
 
                 for rule in rules {
                     // Check activation group (XOR mutual exclusion)
-                    if let Some(ref group) = rule.activation_group {
-                        if fired_activation_groups.contains(group) {
-                            // Another rule in this activation group already fired; skip
-                            continue;
-                        }
+                    if let Some(ref group) = rule.activation_group
+                        && fired_activation_groups.contains(group)
+                    {
+                        // Another rule in this activation group already fired; skip
+                        continue;
                     }
 
                     // Evaluate condition
@@ -81,7 +75,10 @@ impl Engine {
 
                         // Execute actions
                         for action in &rule.actions {
-                            if matches!(action, Action::AwardPoints { .. } | Action::SetEligibility { .. }) {
+                            if matches!(
+                                action,
+                                Action::AwardPoints { .. } | Action::SetEligibility { .. }
+                            ) {
                                 rule_awarded_points_or_eligibility = true;
                             }
                             self.execute_action(
@@ -102,16 +99,27 @@ impl Engine {
                                 rule_name: rule.name.clone(),
                                 category: rule.category.clone(),
                                 points_awarded: 0.0,
-                                reason: rule.description.clone().unwrap_or_else(|| "Inference / enrichment action executed".to_string()),
+                                reason: rule.description.clone().unwrap_or_else(|| {
+                                    "Inference / enrichment action executed".to_string()
+                                }),
                                 phase: rule.phase.clone(),
                             });
                         }
                     } else if rule.is_eligibility_gate {
                         // Only treat failed condition as ineligibility if this is a positive prerequisite rule
-                        let is_explicit_disqualification_rule = rule.actions.iter().any(|a| matches!(a, Action::SetEligibility { eligible: false, .. }));
+                        let is_explicit_disqualification_rule = rule.actions.iter().any(|a| {
+                            matches!(
+                                a,
+                                Action::SetEligibility {
+                                    eligible: false,
+                                    ..
+                                }
+                            )
+                        });
                         if !is_explicit_disqualification_rule {
                             overall_eligible = false;
-                            ineligibility_reasons.push(format!("Mandatory eligibility gate failed: {}", rule.name));
+                            ineligibility_reasons
+                                .push(format!("Mandatory eligibility gate failed: {}", rule.name));
                         }
                     }
                 }
@@ -123,10 +131,10 @@ impl Engine {
             if !phase_order.contains(&phase.as_str()) {
                 rules.sort_by(|a, b| b.priority.cmp(&a.priority).then_with(|| a.id.cmp(&b.id)));
                 for rule in rules {
-                    if let Some(ref group) = rule.activation_group {
-                        if fired_activation_groups.contains(group) {
-                            continue;
-                        }
+                    if let Some(ref group) = rule.activation_group
+                        && fired_activation_groups.contains(group)
+                    {
+                        continue;
                     }
                     let passed = self.evaluate_condition(&ctx, &rule.condition)?;
                     if passed {
@@ -135,7 +143,10 @@ impl Engine {
                         }
                         let mut rule_awarded_points_or_eligibility = false;
                         for action in &rule.actions {
-                            if matches!(action, Action::AwardPoints { .. } | Action::SetEligibility { .. }) {
+                            if matches!(
+                                action,
+                                Action::AwardPoints { .. } | Action::SetEligibility { .. }
+                            ) {
                                 rule_awarded_points_or_eligibility = true;
                             }
                             self.execute_action(
@@ -154,15 +165,26 @@ impl Engine {
                                 rule_name: rule.name.clone(),
                                 category: rule.category.clone(),
                                 points_awarded: 0.0,
-                                reason: rule.description.clone().unwrap_or_else(|| "Inference / enrichment action executed".to_string()),
+                                reason: rule.description.clone().unwrap_or_else(|| {
+                                    "Inference / enrichment action executed".to_string()
+                                }),
                                 phase: rule.phase.clone(),
                             });
                         }
                     } else if rule.is_eligibility_gate {
-                        let is_explicit_disqualification_rule = rule.actions.iter().any(|a| matches!(a, Action::SetEligibility { eligible: false, .. }));
+                        let is_explicit_disqualification_rule = rule.actions.iter().any(|a| {
+                            matches!(
+                                a,
+                                Action::SetEligibility {
+                                    eligible: false,
+                                    ..
+                                }
+                            )
+                        });
                         if !is_explicit_disqualification_rule {
                             overall_eligible = false;
-                            ineligibility_reasons.push(format!("Mandatory eligibility gate failed: {}", rule.name));
+                            ineligibility_reasons
+                                .push(format!("Mandatory eligibility gate failed: {}", rule.name));
                         }
                     }
                 }
@@ -209,10 +231,10 @@ impl Engine {
         }
 
         // Apply Global Total Points Cap if defined
-        if let Some(total_cap) = self.program.total_points_cap {
-            if total_score > total_cap {
-                total_score = total_cap;
-            }
+        if let Some(total_cap) = self.program.total_points_cap
+            && total_score > total_cap
+        {
+            total_score = total_cap;
         }
 
         // Check Pass Mark Threshold
@@ -327,7 +349,10 @@ impl Engine {
                 };
 
                 let target = target_value.ok_or_else(|| {
-                    EngineError::ConditionError(format!("Operator '{:?}' requires a target value at path '{path}'", op))
+                    EngineError::ConditionError(format!(
+                        "Operator '{:?}' requires a target value at path '{path}'",
+                        op
+                    ))
                 })?;
 
                 match op {
@@ -355,12 +380,12 @@ impl Engine {
                     }
                     ComparisonOperator::Between => {
                         let a = value_to_f64(actual)?;
-                        if let Value::Array(bounds) = target {
-                            if bounds.len() == 2 {
-                                let min = value_to_f64(&bounds[0])?;
-                                let max = value_to_f64(&bounds[1])?;
-                                return Ok(a >= min && a <= max);
-                            }
+                        if let Value::Array(bounds) = target
+                            && bounds.len() == 2
+                        {
+                            let min = value_to_f64(&bounds[0])?;
+                            let max = value_to_f64(&bounds[1])?;
+                            return Ok(a >= min && a <= max);
                         }
                         Err(EngineError::ConditionError(format!(
                             "Between operator requires an array [min, max] at '{path}'"
@@ -394,30 +419,30 @@ impl Engine {
                             )))
                         }
                     }
-                    ComparisonOperator::Contains => {
-                        match actual {
-                            Value::Array(arr) => {
-                                for item in arr {
-                                    if values_equal(item, target) {
-                                        return Ok(true);
-                                    }
+                    ComparisonOperator::Contains => match actual {
+                        Value::Array(arr) => {
+                            for item in arr {
+                                if values_equal(item, target) {
+                                    return Ok(true);
                                 }
+                            }
+                            Ok(false)
+                        }
+                        Value::String(s) => {
+                            if let Value::String(sub) = target {
+                                Ok(s.contains(sub))
+                            } else {
                                 Ok(false)
                             }
-                            Value::String(s) => {
-                                if let Value::String(sub) = target {
-                                    Ok(s.contains(sub))
-                                } else {
-                                    Ok(false)
-                                }
-                            }
-                            _ => Ok(false),
                         }
-                    }
+                        _ => Ok(false),
+                    },
                     ComparisonOperator::MatchesRegex => {
                         if let (Some(s), Some(pattern)) = (actual.as_str(), target.as_str()) {
                             let re = Regex::new(pattern).map_err(|e| {
-                                EngineError::ConditionError(format!("Invalid regex '{pattern}': {e}"))
+                                EngineError::ConditionError(format!(
+                                    "Invalid regex '{pattern}': {e}"
+                                ))
                             })?;
                             Ok(re.is_match(s))
                         } else {
@@ -443,14 +468,10 @@ impl Engine {
                 let val = ctx.get_f64(path).unwrap_or(0.0);
                 let mut score = val * factor;
                 if let Some(min_val) = min {
-                    if score < *min_val {
-                        score = *min_val;
-                    }
+                    score = score.max(*min_val);
                 }
                 if let Some(max_val) = max {
-                    if score > *max_val {
-                        score = *max_val;
-                    }
+                    score = score.min(*max_val);
                 }
                 Ok(score)
             }
@@ -482,10 +503,8 @@ impl Engine {
                 let row_key = ctx.get_str(row_path).unwrap_or("");
                 let col_key = ctx.get_str(col_path).unwrap_or("");
 
-                if let Some(row) = matrix.get(row_key) {
-                    if let Some(points) = row.get(col_key) {
-                        return Ok(*points);
-                    }
+                if let Some(points) = matrix.get(row_key).and_then(|row| row.get(col_key)) {
+                    return Ok(*points);
                 }
                 Ok(default.unwrap_or(0.0))
             }
@@ -509,10 +528,11 @@ impl Engine {
                     // Find highest matching threshold
                     let mut best_pts = 0.0;
                     for (band_str, pts) in band_scores {
-                        if let Ok(band_num) = band_str.parse::<i64>() {
-                            if score >= band_num && *pts > best_pts {
-                                best_pts = *pts;
-                            }
+                        if let Ok(band_num) = band_str.parse::<i64>()
+                            && score >= band_num
+                            && *pts > best_pts
+                        {
+                            best_pts = *pts;
                         }
                     }
                     best_pts
@@ -525,6 +545,7 @@ impl Engine {
     }
 
     /// Execute a rule action
+    #[allow(clippy::too_many_arguments)]
     fn execute_action(
         &self,
         action: &Action,
@@ -583,47 +604,53 @@ impl Engine {
                 field,
                 target_attribute,
             } => {
-                if let Ok(val) = ctx.get_path(source_array) {
-                    if let Value::Array(items) = val {
-                        let mut filtered_items = Vec::new();
-                        for item in items {
-                            if let Some(filt) = filter {
-                                let item_ctx = FactContext::from_value(item.clone());
-                                if self.evaluate_condition(&item_ctx, filt)? {
-                                    filtered_items.push(item);
-                                }
-                            } else {
+                if let Ok(Value::Array(items)) = ctx.get_path(source_array) {
+                    let mut filtered_items = Vec::new();
+                    for item in items {
+                        if let Some(filt) = filter {
+                            let item_ctx = FactContext::from_value(item.clone());
+                            if self.evaluate_condition(&item_ctx, filt)? {
                                 filtered_items.push(item);
                             }
+                        } else {
+                            filtered_items.push(item);
                         }
-
-                        let result_val = match function.as_str() {
-                            "count" => Value::from(filtered_items.len()),
-                            "sum" => {
-                                let sum: f64 = filtered_items
-                                    .iter()
-                                    .filter_map(|i| {
-                                        field.as_ref().and_then(|f| i.get(f)).and_then(|v| v.as_f64().or_else(|| v.as_i64().map(|n| n as f64)))
-                                    })
-                                    .sum();
-                                Value::from(sum)
-                            }
-                            "sum_fte_years" => {
-                                // Normalized FTE calculation
-                                let mut total_years = 0.0;
-                                for item in filtered_items {
-                                    let months = item.get("duration_months").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                                    let hrs = item.get("weekly_hours").and_then(|v| v.as_f64()).unwrap_or(30.0);
-                                    let fte_factor = if hrs >= 30.0 { 1.0 } else { hrs / 30.0 };
-                                    total_years += (months * fte_factor) / 12.0;
-                                }
-                                Value::from(total_years)
-                            }
-                            _ => Value::Null,
-                        };
-
-                        ctx.set_computed_attribute(target_attribute.clone(), result_val);
                     }
+
+                    let result_val = match function.as_str() {
+                        "count" => Value::from(filtered_items.len()),
+                        "sum" => {
+                            let sum: f64 = filtered_items
+                                .iter()
+                                .filter_map(|i| {
+                                    field.as_ref().and_then(|f| i.get(f)).and_then(|v| {
+                                        v.as_f64().or_else(|| v.as_i64().map(|n| n as f64))
+                                    })
+                                })
+                                .sum();
+                            Value::from(sum)
+                        }
+                        "sum_fte_years" => {
+                            // Normalized FTE calculation
+                            let mut total_years = 0.0;
+                            for item in filtered_items {
+                                let months = item
+                                    .get("duration_months")
+                                    .and_then(|v| v.as_f64())
+                                    .unwrap_or(0.0);
+                                let hrs = item
+                                    .get("weekly_hours")
+                                    .and_then(|v| v.as_f64())
+                                    .unwrap_or(30.0);
+                                let fte_factor = if hrs >= 30.0 { 1.0 } else { hrs / 30.0 };
+                                total_years += (months * fte_factor) / 12.0;
+                            }
+                            Value::from(total_years)
+                        }
+                        _ => Value::Null,
+                    };
+
+                    ctx.set_computed_attribute(target_attribute.clone(), result_val);
                 }
             }
         }
@@ -651,7 +678,10 @@ fn values_equal(a: &Value, b: &Value) -> bool {
         return sa == sb;
     }
     // Numeric comparison (handle i64 vs f64)
-    if let (Some(na), Some(nb)) = (a.as_f64().or_else(|| a.as_i64().map(|i| i as f64)), b.as_f64().or_else(|| b.as_i64().map(|i| i as f64))) {
+    if let (Some(na), Some(nb)) = (
+        a.as_f64().or_else(|| a.as_i64().map(|i| i as f64)),
+        b.as_f64().or_else(|| b.as_i64().map(|i| i as f64)),
+    ) {
         return (na - nb).abs() < f64::EPSILON;
     }
     // Boolean comparison

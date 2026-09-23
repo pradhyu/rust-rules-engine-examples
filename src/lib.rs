@@ -7,7 +7,7 @@ pub use core::{
 };
 
 pub use immigration::{
-    AdditionalFactors, ApplicantFactWrapper, ApplicantProfile, EducationCredential, EmployerSponsor,
-    JobOffer, LanguageAbilityScore, LanguageProficiency, SpouseProfile, WorkExperience,
+    AdditionalFactors, ApplicantFactWrapper, ApplicantProfile, EducationCredential,
+    EmployerSponsor, JobOffer, LanguageAbilityScore, LanguageProficiency, SpouseProfile,
+    WorkExperience,
 };
-

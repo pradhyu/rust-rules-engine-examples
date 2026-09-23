@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
-use comfy_table::{presets::UTF8_FULL, Cell, Color, ContentArrangement, Table};
+use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use rust_rules_engine::{Engine, FactContext, RuleProgram};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -104,24 +104,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for entry in fs::read_dir(&applicants_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.extension().and_then(|e| e.to_str()) == Some("yaml")
-                    || path.extension().and_then(|e| e.to_str()) == Some("json")
+                let is_data_file = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| e == "yaml" || e == "json");
+                if is_data_file
+                    && let Ok(ctx) = load_fact_context(&path)
+                    && let Ok(report) = engine.evaluate(&ctx)
                 {
-                    if let Ok(ctx) = load_fact_context(&path) {
-                        if let Ok(report) = engine.evaluate(&ctx) {
-                            let file_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                            results.push((file_name, report));
-                        }
-                    }
+                    let file_name = path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
+                    results.push((file_name, report));
                 }
             }
 
             // Sort by total score descending (Ranking)
-            results.sort_by(|a, b| b.1.total_score.partial_cmp(&a.1.total_score).unwrap_or(std::cmp::Ordering::Equal));
+            results.sort_by(|a, b| {
+                b.1.total_score
+                    .partial_cmp(&a.1.total_score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
 
-            println!("\n{}", format!(" 🏆 BATCH RANKING & SELECTION DRAW: {} ", engine.program().name).bold().on_purple().white());
+            println!(
+                "\n{}",
+                format!(
+                    " 🏆 BATCH RANKING & SELECTION DRAW: {} ",
+                    engine.program().name
+                )
+                .bold()
+                .on_purple()
+                .white()
+            );
             if let Some(cut) = cutoff {
-                println!("  Cutoff Score Threshold: {}", format!("{:.1} points", cut).yellow().bold());
+                println!(
+                    "  Cutoff Score Threshold: {}",
+                    format!("{:.1} points", cut).yellow().bold()
+                );
             }
             println!("  Total Candidates Evaluated: {}", results.len());
 
@@ -143,15 +164,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let score_str = format!("{:.1}", report.total_score);
 
                 let (status_str, draw_result) = if !report.is_eligible() {
-                    (Cell::new("Ineligible").fg(Color::Red), Cell::new("Disqualified").fg(Color::Red))
+                    (
+                        Cell::new("Ineligible").fg(Color::Red),
+                        Cell::new("Disqualified").fg(Color::Red),
+                    )
                 } else if let Some(cut) = cutoff {
                     if report.total_score >= cut {
-                        (Cell::new("Eligible").fg(Color::Green), Cell::new("SELECTED (ITA)").fg(Color::Green))
+                        (
+                            Cell::new("Eligible").fg(Color::Green),
+                            Cell::new("SELECTED (ITA)").fg(Color::Green),
+                        )
                     } else {
-                        (Cell::new("Eligible").fg(Color::Green), Cell::new("Below Cutoff").fg(Color::Yellow))
+                        (
+                            Cell::new("Eligible").fg(Color::Green),
+                            Cell::new("Below Cutoff").fg(Color::Yellow),
+                        )
                     }
                 } else {
-                    (Cell::new("Eligible").fg(Color::Green), Cell::new("Ranked").fg(Color::Cyan))
+                    (
+                        Cell::new("Eligible").fg(Color::Green),
+                        Cell::new("Ranked").fg(Color::Cyan),
+                    )
                 };
 
                 table.add_row(vec![
@@ -168,35 +201,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         Commands::Inspect { rules } => {
             let program = load_rule_program(&rules)?;
-            println!("\n{}", format!(" 🔍 PROGRAM INSPECTION: {} (v{}) ", program.name, program.version).bold().on_cyan().black());
+            println!(
+                "\n{}",
+                format!(
+                    " 🔍 PROGRAM INSPECTION: {} (v{}) ",
+                    program.name, program.version
+                )
+                .bold()
+                .on_cyan()
+                .black()
+            );
             if let Some(desc) = &program.description {
                 println!("Description: {}", desc.dimmed());
             }
             if let Some(pass) = program.pass_mark_threshold {
-                println!("Pass Mark Threshold: {}", format!("{:.1} points", pass).yellow().bold());
+                println!(
+                    "Pass Mark Threshold: {}",
+                    format!("{:.1} points", pass).yellow().bold()
+                );
             }
             if let Some(total_cap) = program.total_points_cap {
-                println!("Overall Total Cap: {}", format!("{:.1} points", total_cap).yellow().bold());
+                println!(
+                    "Overall Total Cap: {}",
+                    format!("{:.1} points", total_cap).yellow().bold()
+                );
             }
 
             println!("\n{}", "📊 Category Budgets & Sub-Caps:".bold().underline());
-            for (_key, cat) in &program.categories {
-                let cap_str = cat.max_points.map(|p| format!("{:.1} pts", p)).unwrap_or_else(|| "No Cap".to_string());
-                println!("  • {:<25} -> Max: {}", cat.display_name.cyan(), cap_str.yellow());
+            for cat in program.categories.values() {
+                let cap_str = cat
+                    .max_points
+                    .map(|p| format!("{:.1} pts", p))
+                    .unwrap_or_else(|| "No Cap".to_string());
+                println!(
+                    "  • {:<25} -> Max: {}",
+                    cat.display_name.cyan(),
+                    cap_str.yellow()
+                );
             }
 
             println!("\n{}", "📜 Defined Rules by Phase:".bold().underline());
-            let mut rules_by_phase: std::collections::BTreeMap<String, Vec<&rust_rules_engine::Rule>> = std::collections::BTreeMap::new();
+            let mut rules_by_phase: std::collections::BTreeMap<
+                String,
+                Vec<&rust_rules_engine::Rule>,
+            > = std::collections::BTreeMap::new();
             for r in &program.rules {
                 rules_by_phase.entry(r.phase.clone()).or_default().push(r);
             }
 
             for (phase, rules) in rules_by_phase {
-                println!("\n  [{}] ({} rules)", phase.to_uppercase().magenta().bold(), rules.len());
+                println!(
+                    "\n  [{}] ({} rules)",
+                    phase.to_uppercase().magenta().bold(),
+                    rules.len()
+                );
                 for r in rules {
-                    let gate_tag = if r.is_eligibility_gate { "[GATE]".red() } else { "".normal() };
-                    let group_tag = r.activation_group.as_ref().map(|g| format!("[XOR: {}]", g).yellow()).unwrap_or_default();
-                    println!("    • {:<35} (Priority: {:>4}) {} {}", r.name, r.priority, gate_tag, group_tag);
+                    let gate_tag = if r.is_eligibility_gate {
+                        "[GATE]".red()
+                    } else {
+                        "".normal()
+                    };
+                    let group_tag = r
+                        .activation_group
+                        .as_ref()
+                        .map(|g| format!("[XOR: {}]", g).yellow())
+                        .unwrap_or_default();
+                    println!(
+                        "    • {:<35} (Priority: {:>4}) {} {}",
+                        r.name, r.priority, gate_tag, group_tag
+                    );
                 }
             }
             println!();

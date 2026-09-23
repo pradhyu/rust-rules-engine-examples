@@ -1,0 +1,54 @@
+{
+  "applicant": {
+    "id": "APP-TC01-TECH-LEAD",
+    "first_name": "Liam",
+    "last_name": "Tremblay",
+    "age": 29,
+    "marital_status": "single",
+    "education": {
+      "highest_degree": "master",
+      "field_of_study": "Computer Science",
+      "is_stem": true,
+      "is_stem_research": false,
+      "is_domestic_study": false,
+      "domestic_study_years": null
+    },
+    "language": {
+      "first_official": {
+        "clb_reading": 9,
+        "clb_writing": 9,
+        "clb_listening": 9,
+        "clb_speaking": 9,
+        "test_type": "ielts",
+        "composite_clb": 9.0
+      },
+      "second_official": null,
+      "cefr_level": null,
+      "english_tier": null,
+      "test_date": "2025-06-15",
+      "test_age_days": 280
+    },
+    "work_experience": {
+      "domestic_years": 2,
+      "foreign_years": 3,
+      "primary_noc_code": "21232",
+      "skill_level": "teer_1",
+      "has_trade_certification": false
+    },
+    "job_offer": {
+      "has_offer": true,
+      "is_lmia_approved_or_exempt": true,
+      "noc_teer": "teer_1",
+      "annual_salary": 115000.0,
+      "meets_occupation_going_rate": true,
+      "is_on_immigration_salary_list": false,
+      "sponsor": null
+    },
+    "additional_factors": {
+      "provincial_nomination": false,
+      "has_sibling_citizen_or_pr": true,
+      "french_speaker_bonus_eligible": false
+    },
+    "spouse": null
+  }
+}

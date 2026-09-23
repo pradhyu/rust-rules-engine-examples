@@ -122,10 +122,7 @@ pub enum Action {
         reason: String,
     },
     /// Set the overall eligibility state
-    SetEligibility {
-        eligible: bool,
-        reason: String,
-    },
+    SetEligibility { eligible: bool, reason: String },
     /// Add a diagnostic tag or program stream flag (e.g. "stem_priority", "french_speaker")
     AddTag { tag: String },
     /// Enrich context with a computed attribute (Working Memory fact inference)
@@ -256,7 +253,9 @@ impl RuleProgram {
     }
 
     /// Parse a RuleProgram from a YAML file
-    pub fn from_yaml_file(path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_yaml_file(
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let content = std::fs::read_to_string(path)?;
         let program = serde_yaml::from_str(&content)?;
         Ok(program)
@@ -268,7 +267,9 @@ impl RuleProgram {
     }
 
     /// Parse a RuleProgram from a file path (JSON or YAML)
-    pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_file(
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let p = path.as_ref();
         let content = std::fs::read_to_string(p)?;
         if p.extension().and_then(|e| e.to_str()) == Some("json") {
@@ -279,16 +280,16 @@ impl RuleProgram {
     }
 
     /// Load and merge ALL rule files from a directory into a single unified RuleProgram
-    pub fn from_directory(dir_path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_directory(
+        dir_path: impl AsRef<std::path::Path>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let dir = dir_path.as_ref();
         if !dir.is_dir() {
             return Err(format!("Path is not a directory: {}", dir.display()).into());
         }
 
-        let mut entries: Vec<_> = std::fs::read_dir(dir)?
-            .filter_map(|e| e.ok())
-            .collect();
-        
+        let mut entries: Vec<_> = std::fs::read_dir(dir)?.filter_map(|e| e.ok()).collect();
+
         // Sort filenames for deterministic load order
         entries.sort_by_key(|a| a.file_name());
 
@@ -311,22 +312,23 @@ impl RuleProgram {
                 let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                 if ext == "yaml" || ext == "yml" || ext == "json" {
                     let content = std::fs::read_to_string(&path)?;
-                    let fragment: Result<RuleListFragment, Box<dyn std::error::Error>> = if ext == "json" {
-                        serde_json::from_str(&content).map_err(|e| e.into())
-                    } else {
-                        serde_yaml::from_str(&content).map_err(|e| e.into())
-                    };
+                    let fragment: Result<RuleListFragment, Box<dyn std::error::Error>> =
+                        if ext == "json" {
+                            serde_json::from_str(&content).map_err(|e| e.into())
+                        } else {
+                            serde_yaml::from_str(&content).map_err(|e| e.into())
+                        };
 
                     if let Ok(frag) = fragment {
-                        if unified.id.is_empty() {
-                            if let Some(id) = frag.id {
-                                unified.id = id;
-                            }
+                        if unified.id.is_empty()
+                            && let Some(id) = frag.id
+                        {
+                            unified.id = id;
                         }
-                        if unified.name.is_empty() {
-                            if let Some(name) = frag.name {
-                                unified.name = name;
-                            }
+                        if unified.name.is_empty()
+                            && let Some(name) = frag.name
+                        {
+                            unified.name = name;
                         }
                         if let Some(ver) = frag.version {
                             unified.version = ver;
@@ -337,7 +339,9 @@ impl RuleProgram {
                         if frag.total_points_cap.is_some() && unified.total_points_cap.is_none() {
                             unified.total_points_cap = frag.total_points_cap;
                         }
-                        if frag.pass_mark_threshold.is_some() && unified.pass_mark_threshold.is_none() {
+                        if frag.pass_mark_threshold.is_some()
+                            && unified.pass_mark_threshold.is_none()
+                        {
                             unified.pass_mark_threshold = frag.pass_mark_threshold;
                         }
 
@@ -358,11 +362,19 @@ impl RuleProgram {
         }
 
         if loaded_files == 0 {
-            return Err(format!("No valid rule files (.yaml, .yml, .json) found in directory: {}", dir.display()).into());
+            return Err(format!(
+                "No valid rule files (.yaml, .yml, .json) found in directory: {}",
+                dir.display()
+            )
+            .into());
         }
 
         if unified.id.is_empty() {
-            unified.id = dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+            unified.id = dir
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
         }
         if unified.name.is_empty() {
             unified.name = format!("Modular Rule Program ({})", unified.id);
@@ -372,7 +384,9 @@ impl RuleProgram {
     }
 
     /// Automatically load from either a file or a directory of rule files
-    pub fn from_path(path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_path(
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let p = path.as_ref();
         if p.is_dir() {
             Self::from_directory(p)
@@ -381,4 +395,3 @@ impl RuleProgram {
         }
     }
 }
-

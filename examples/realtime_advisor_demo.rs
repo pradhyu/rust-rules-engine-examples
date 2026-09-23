@@ -6,7 +6,13 @@ use rust_rules_engine::{
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n{}", " 🍁 REAL-TIME IMMIGRATION ADVISOR & RECOMMENDATION ENGINE 🍁 ".bold().on_blue().white());
+    println!(
+        "\n{}",
+        " 🍁 REAL-TIME IMMIGRATION ADVISOR & RECOMMENDATION ENGINE 🍁 "
+            .bold()
+            .on_blue()
+            .white()
+    );
     println!(" This example demonstrates evaluating a single person's data in microseconds");
     println!(" and running 'What-If' simulations to output actionable recommendations.\n");
 
@@ -60,7 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 3. Real-time Baseline Evaluation
     let eval_start = Instant::now();
-    let baseline_ctx = FactContext::from_value(serde_json::json!({ "applicant": &baseline_profile }));
+    let baseline_ctx =
+        FactContext::from_value(serde_json::json!({ "applicant": &baseline_profile }));
     let baseline_report = engine.evaluate(&baseline_ctx)?;
     let eval_duration = eval_start.elapsed();
 
@@ -68,24 +75,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let recent_cutoff = 485.0; // Simulated Express Entry draw cutoff
 
     println!("══════════════════════════════════════════════════════════════════════");
-    println!(" 👤 CANDIDATE PROFILE: {} {}", baseline_profile.first_name.bold(), baseline_profile.last_name.bold());
-    println!("    ID: {} | Age: {} | Education: Master's Degree", baseline_profile.id.cyan(), baseline_profile.age);
+    println!(
+        " 👤 CANDIDATE PROFILE: {} {}",
+        baseline_profile.first_name.bold(),
+        baseline_profile.last_name.bold()
+    );
+    println!(
+        "    ID: {} | Age: {} | Education: Master's Degree",
+        baseline_profile.id.cyan(),
+        baseline_profile.age
+    );
     println!("    Experience: 1 yr Canadian + 3 yrs Foreign | Language: CLB 7");
     println!("──────────────────────────────────────────────────────────────────────");
     println!(" ⚡ Real-Time Evaluation Latency: {:?}", eval_duration);
-    println!(" 📊 Current CRS Score: {} / 1200 points", format!("{:.1}", baseline_score).yellow().bold());
+    println!(
+        " 📊 Current CRS Score: {} / 1200 points",
+        format!("{:.1}", baseline_score).yellow().bold()
+    );
     println!(" 🎯 Target Draw Cutoff: {:.1} points", recent_cutoff);
 
     let gap = recent_cutoff - baseline_score;
     if gap > 0.0 {
-        println!(" ⚠️ Status: {} (Need {:.1} more points to qualify for General Draw)", "BELOW CUTOFF".red().bold(), gap);
+        println!(
+            " ⚠️ Status: {} (Need {:.1} more points to qualify for General Draw)",
+            "BELOW CUTOFF".red().bold(),
+            gap
+        );
     } else {
-        println!(" ✅ Status: {}", "COMPETITIVE (Above Cutoff)".green().bold());
+        println!(
+            " ✅ Status: {}",
+            "COMPETITIVE (Above Cutoff)".green().bold()
+        );
     }
     println!("══════════════════════════════════════════════════════════════════════\n");
 
     // 4. Real-time Pathway Simulations ("What-If" Analysis)
-    println!("{}", "💡 RUNNING REAL-TIME 'WHAT-IF' PATHWAY ADVISORY SIMULATIONS...".bold().underline());
+    println!(
+        "{}",
+        "💡 RUNNING REAL-TIME 'WHAT-IF' PATHWAY ADVISORY SIMULATIONS..."
+            .bold()
+            .underline()
+    );
 
     struct Recommendation {
         title: String,
@@ -128,7 +158,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let gain = sim_report.total_score - baseline_score;
         recommendations.push(Recommendation {
             title: "Complete 2nd Year of Canadian Domestic Work Experience".to_string(),
-            action_item: "Increases Core Human Capital domestic work points from 40 to 53.".to_string(),
+            action_item: "Increases Core Human Capital domestic work points from 40 to 53."
+                .to_string(),
             projected_score: sim_report.total_score,
             point_gain: gain,
             reaches_cutoff: sim_report.total_score >= recent_cutoff,
@@ -176,7 +207,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Sort recommendations by point gain descending
-    recommendations.sort_by(|a, b| b.point_gain.partial_cmp(&a.point_gain).unwrap_or(std::cmp::Ordering::Equal));
+    recommendations.sort_by(|a, b| {
+        b.point_gain
+            .partial_cmp(&a.point_gain)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // Print Recommendation Cards
     for (i, rec) in recommendations.iter().enumerate() {
@@ -191,15 +226,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         println!("\n  {} {} {}", rank_str, rec.title.bold(), outcome_badge);
-        println!("     Gain: {} → Projected Total: {}", gain_str, projected_str);
+        println!(
+            "     Gain: {} → Projected Total: {}",
+            gain_str, projected_str
+        );
         println!("     Why:  {}", rec.action_item.dimmed());
     }
 
-    println!("\n{}", "══════════════════════════════════════════════════════════════════════".dimmed());
+    println!(
+        "\n{}",
+        "══════════════════════════════════════════════════════════════════════".dimmed()
+    );
     println!(" 🚀 Summary: In real-time scenarios, policy engines in Rust evaluate");
     println!("    counterfactual simulations in microseconds, empowering applicants with");
     println!("    instant, personalized pathways to qualification.");
-    println!("{}\n", "══════════════════════════════════════════════════════════════════════".dimmed());
+    println!(
+        "{}\n",
+        "══════════════════════════════════════════════════════════════════════".dimmed()
+    );
 
     Ok(())
 }

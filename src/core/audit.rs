@@ -1,5 +1,5 @@
-use comfy_table::{presets::UTF8_FULL, Cell, Color, ContentArrangement, Table};
 use colored::Colorize;
+use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +46,10 @@ impl AuditReport {
     /// Output a formatted audit table to stdout
     pub fn print_audit_table(&self) {
         println!();
-        let title = format!(" ⚖️  DECISION AUDIT REPORT: {} (v{}) ", self.program_name, self.version);
+        let title = format!(
+            " ⚖️  DECISION AUDIT REPORT: {} (v{}) ",
+            self.program_name, self.version
+        );
         println!("{}", title.bold().on_blue().white());
         if let Some(ref id) = self.applicant_id {
             println!("  Applicant ID: {}", id.cyan().bold());
@@ -58,10 +61,20 @@ impl AuditReport {
             " INELIGIBLE / REJECTED ".bold().on_red().white()
         };
         println!("  Overall Status: {status_str}");
-        println!("  Total Calculated Score: {} points", format!("{:.1}", self.total_score).yellow().bold());
+        println!(
+            "  Total Calculated Score: {} points",
+            format!("{:.1}", self.total_score).yellow().bold()
+        );
         if let Some(threshold) = self.pass_mark_threshold {
-            let pass_str = if self.passed_threshold { "PASSED".green() } else { "FAILED".red() };
-            println!("  Pass Mark Threshold: {:.1} points ({})", threshold, pass_str);
+            let pass_str = if self.passed_threshold {
+                "PASSED".green()
+            } else {
+                "FAILED".red()
+            };
+            println!(
+                "  Pass Mark Threshold: {:.1} points ({})",
+                threshold, pass_str
+            );
         }
 
         if !self.tags.is_empty() {
@@ -90,7 +103,10 @@ impl AuditReport {
             ]);
 
         for cat in &self.category_scores {
-            let max_str = cat.max_points.map(|m| format!("{:.1}", m)).unwrap_or_else(|| "No Cap".to_string());
+            let max_str = cat
+                .max_points
+                .map(|m| format!("{:.1}", m))
+                .unwrap_or_else(|| "No Cap".to_string());
             let status_cell = if cat.is_capped {
                 Cell::new("CAPPED (Overflow Truncated)").fg(Color::Yellow)
             } else {
