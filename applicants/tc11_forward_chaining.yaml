@@ -1,0 +1,23 @@
+applicant:
+  id: "APP-TC11-FORWARD-CHAIN"
+  first_name: "Amara"
+  last_name: "Okafor"
+  age: 28
+  marital_status: "single"
+
+  education:
+    highest_degree: "master"
+    is_stem: true
+
+  language:
+    first_official:
+      clb_reading: 9
+      clb_writing: 9
+      clb_listening: 9
+      clb_speaking: 9
+
+  work_experience:
+    domestic_years: 0
+    foreign_years: 4
+
+  spouse: null

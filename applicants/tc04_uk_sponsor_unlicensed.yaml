@@ -1,0 +1,24 @@
+applicant:
+  id: "APP-TC04-UNLICENSED-SPONSOR"
+  first_name: "Tariq"
+  last_name: "Al-Mansoor"
+  age: 30
+  marital_status: "single"
+
+  education:
+    highest_degree: "bachelor"
+    is_stem: false
+
+  language:
+    cefr_level: "B2"
+
+  job_offer:
+    has_offer: true
+    annual_salary: 45000.00
+    rqf_skill_level: 4
+    meets_occupation_going_rate: true
+    sponsor:
+      is_licensed: false # Fails multi-fact join / validation gate!
+      license_rating: "revoked"
+
+  spouse: null

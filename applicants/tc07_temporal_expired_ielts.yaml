@@ -1,0 +1,26 @@
+applicant:
+  id: "APP-TC07-EXPIRED-IELTS"
+  first_name: "Sarah"
+  last_name: "Jenkins"
+  age: 28
+  marital_status: "single"
+
+  education:
+    highest_degree: "master"
+    is_stem: false
+
+  language:
+    test_type: "ielts"
+    test_date: "2024-06-15"
+    test_age_days: 820 # Exceeds 730 days limit -> Expired!
+    first_official:
+      clb_reading: 9
+      clb_writing: 9
+      clb_listening: 9
+      clb_speaking: 9
+
+  work_experience:
+    domestic_years: 2
+    foreign_years: 2
+
+  spouse: null

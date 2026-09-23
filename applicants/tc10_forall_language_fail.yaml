@@ -1,0 +1,23 @@
+applicant:
+  id: "APP-TC10-FORALL-FAIL"
+  first_name: "Mateo"
+  last_name: "Silva"
+  age: 27
+  marital_status: "single"
+
+  education:
+    highest_degree: "bachelor"
+
+  # Has CLB 10 in 3 abilities, but only CLB 6 in speaking -> Fails `forall(clb >= 7)`
+  language:
+    first_official:
+      clb_reading: 10
+      clb_writing: 10
+      clb_listening: 10
+      clb_speaking: 6
+
+  work_experience:
+    domestic_years: 1
+    foreign_years: 1
+
+  spouse: null

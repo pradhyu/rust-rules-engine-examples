@@ -1,0 +1,19 @@
+applicant:
+  id: "APP-TC06-AGE-BARRED"
+  first_name: "Marcus"
+  last_name: "Vance"
+  date_of_birth: "1980-01-15"
+  age: 46 # Over age 45 -> Hard eligibility gate failure!
+  marital_status: "single"
+
+  education:
+    highest_degree: "doctorate"
+    is_stem_research: true
+
+  language:
+    english_tier: "superior"
+
+  work_experience:
+    foreign_years: 12
+
+  spouse: null

@@ -1,0 +1,23 @@
+applicant:
+  id: "APP-TC08-NULL-SPOUSE"
+  first_name: "Kavita"
+  last_name: "Patel"
+  age: 26
+  marital_status: "single"
+
+  education:
+    highest_degree: "master"
+    is_stem: true
+
+  language:
+    first_official:
+      clb_reading: 8
+      clb_writing: 8
+      clb_listening: 8
+      clb_speaking: 8
+
+  work_experience:
+    domestic_years: 1
+    foreign_years: 2
+
+  spouse: null # Explicitly null; engine must not panic when evaluating spouse rules

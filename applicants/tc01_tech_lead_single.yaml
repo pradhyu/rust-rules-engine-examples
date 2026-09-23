@@ -1,0 +1,46 @@
+applicant:
+  id: "APP-TC01-TECH-LEAD"
+  first_name: "Aarav"
+  last_name: "Sharma"
+  date_of_birth: "1997-04-15"
+  age: 29
+  marital_status: "single"
+
+  education:
+    highest_degree: "master"
+    field_of_study: "computer_science"
+    is_stem: true
+    is_domestic_study: false
+
+  language:
+    first_official:
+      test_type: "ielts"
+      clb_reading: 9
+      clb_writing: 9
+      clb_listening: 9
+      clb_speaking: 9
+      composite_clb: 9.0
+    second_official: null
+
+  work_experience:
+    domestic_years: 2
+    foreign_years: 4
+    primary_noc_code: "21232"
+    skill_level: "teer_1"
+    has_trade_certification: false
+
+  job_offer:
+    has_offer: true
+    is_lmia_approved_or_exempt: true
+    noc_teer: "teer_1"
+    annual_salary: 115000.00
+    sponsor:
+      is_licensed: true
+      license_rating: "A_rated"
+
+  additional_factors:
+    provincial_nomination: false
+    has_sibling_citizen_or_pr: true
+    french_speaker_bonus_eligible: false
+
+  spouse: null

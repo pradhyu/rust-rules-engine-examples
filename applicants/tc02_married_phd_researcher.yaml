@@ -1,0 +1,53 @@
+applicant:
+  id: "APP-TC02-PHD-RESEARCHER"
+  first_name: "Dr. Elena"
+  last_name: "Rostova"
+  date_of_birth: "1994-08-20"
+  age: 32
+  marital_status: "married"
+
+  education:
+    highest_degree: "doctorate"
+    field_of_study: "biomedical_engineering"
+    is_stem: true
+    is_stem_research: true
+
+  language:
+    first_official:
+      test_type: "celpip"
+      clb_reading: 10
+      clb_writing: 10
+      clb_listening: 10
+      clb_speaking: 10
+      composite_clb: 10.0
+    second_official: null
+
+  work_experience:
+    domestic_years: 1
+    foreign_years: 5
+    primary_noc_code: "21211"
+    skill_level: "teer_0"
+    has_trade_certification: false
+
+  job_offer:
+    has_offer: false
+    is_lmia_approved_or_exempt: false
+
+  additional_factors:
+    provincial_nomination: true
+    has_sibling_citizen_or_pr: false
+    french_speaker_bonus_eligible: false
+
+  spouse:
+    first_name: "Dmitri"
+    last_name: "Rostov"
+    education:
+      highest_degree: "bachelor"
+    language:
+      first_official:
+        clb_reading: 8
+        clb_writing: 8
+        clb_listening: 8
+        clb_speaking: 8
+    has_positive_skills_assessment: true
+    english_competent: true
