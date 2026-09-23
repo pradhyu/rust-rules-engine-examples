@@ -1119,6 +1119,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nom"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1485,6 +1494,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rexile"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b504078b98a2468e914c7fbc0dcd3085f65858c4a6b666327ddd974f111d88f6"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+]
+
+[[package]]
 name = "ring"
 version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1499,6 +1518,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-rule-engine"
+version = "1.21.7"
+dependencies = [
+ "chrono",
+ "log",
+ "nom",
+ "rexile",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "rust-rules-engine-examples"
 version = "0.1.0"
 dependencies = [
@@ -1510,6 +1543,7 @@ dependencies = [
  "prost",
  "regex",
  "reqwest",
+ "rust-rule-engine",
  "rustyline",
  "serde",
  "serde_json",

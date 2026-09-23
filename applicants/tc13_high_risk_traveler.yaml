@@ -1,0 +1,326 @@
+applicant:
+  id: "TRAV-HR-013"
+  name: "Viktor Petrov"
+  nationality: "RU"
+  passport_number: "RU4412876"
+  travel_history:
+    - country_code: "IR"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "IR"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "IR"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "SY"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "SY"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "CU"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "CU"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "KP"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "KP"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "VE"
+      region: "other"
+      entry_date: "2020-01-10"
+      exit_date: "2020-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2021-01-10"
+      exit_date: "2021-02-17"
+      duration_days: 38
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 8
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2021-01-10"
+      exit_date: "2021-02-17"
+      duration_days: 38
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 8
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2021-01-10"
+      exit_date: "2021-02-17"
+      duration_days: 38
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 8
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2021-01-10"
+      exit_date: "2021-02-17"
+      duration_days: 38
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 8
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2021-01-10"
+      exit_date: "2021-02-17"
+      duration_days: 38
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 8
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "FR"
+      region: "schengen"
+      entry_date: "2022-01-10"
+      exit_date: "2022-02-10"
+      duration_days: 21
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "AF"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "AF"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "IQ"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "IQ"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "YE"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0
+    - country_code: "ZA"
+      region: "other"
+      entry_date: "2024-01-10"
+      exit_date: "2024-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "business"
+      overstay_days: 0

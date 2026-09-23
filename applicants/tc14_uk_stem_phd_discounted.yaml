@@ -1,0 +1,25 @@
+applicant:
+  id: "APP-TC14-STEM-PHD-DISCOUNT"
+  first_name: "Dr. Maya"
+  last_name: "Lin"
+  age: 28
+  marital_status: "single"
+
+  education:
+    highest_degree: "doctorate"
+    is_stem: true
+
+  language:
+    cefr_level: "B2"
+
+  job_offer:
+    has_offer: true
+    annual_salary: 34500.00 # Below Option A (£38.7k), but qualifies under Option B (STEM PhD + £30.9k)
+    rqf_skill_level: 6
+    meets_occupation_going_rate: true
+    is_on_immigration_salary_list: false
+    sponsor:
+      is_licensed: true
+      license_rating: "A_rated"
+
+  spouse: null

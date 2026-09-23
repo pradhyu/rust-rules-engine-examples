@@ -1,18 +1,20 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
-use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::{Cell, Color, ContentArrangement, Table};
 use rust_rules_engine::{
-    AppState, Engine, FactContext, RuleProgram, RulesGrpcService, RulesServiceServer,
-    create_rest_router, run_interactive_repl,
+    AppState, RulesGrpcService, RulesServiceServer, create_rest_router, evaluate_facts,
+    json_to_facts, load_knowledge_base_from_path, run_interactive_repl,
 };
 use std::fs;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 #[derive(Parser)]
 #[command(
     name = "rules-engine-cli",
-    about = "A high-performance, deterministic Rules Engine in Rust with REST, gRPC, and Interactive REPL support",
+    about = "A high-performance Rules Engine in Rust (powered by KSD-CO/rust-rule-engine) with REST, gRPC, and Interactive REPL support",
     version
 )]
 struct Cli {
@@ -29,9 +31,9 @@ enum OutputFormat {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Evaluate a single applicant profile against a folder of declarative rules
+    /// Evaluate a single applicant profile against GRL rules
     Evaluate {
-        /// Path to the rules folder / directory (or single rule file)
+        /// Path to the GRL rules file or directory
         #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
 
@@ -44,9 +46,9 @@ enum Commands {
         format: OutputFormat,
     },
 
-    /// Batch evaluate and rank all applicants in a directory against a folder of rules
+    /// Batch evaluate and rank all applicants in a directory against GRL rules
     Batch {
-        /// Path to the rules folder / directory (or single rule file)
+        /// Path to the GRL rules file or directory
         #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
 
@@ -59,9 +61,9 @@ enum Commands {
         cutoff: Option<f64>,
     },
 
-    /// Inspect a declarative rules folder (metadata, categories, caps, phases, and all loaded rules)
+    /// Inspect a Knowledge Base rules file or directory
     Inspect {
-        /// Path to the rules folder / directory (or single rule file)
+        /// Path to the GRL rules file or directory
         #[arg(short, long, alias = "rules-dir")]
         rules: PathBuf,
     },
@@ -75,8 +77,8 @@ enum Commands {
 
     /// Run real-time high-throughput REST (HTTP/JSON) and gRPC (HTTP/2) microservices
     Serve {
-        /// Path to the rules folder or file to load initially
-        #[arg(short, long, alias = "rules-dir", default_value = "rules/canada_crs/")]
+        /// Path to the GRL rules file or directory to load initially
+        #[arg(short, long, alias = "rules-dir", default_value = "rules/uk_skilled_worker_points.grl")]
         rules: PathBuf,
 
         /// HTTP REST API port
@@ -104,42 +106,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             rest_port,
             grpc_port,
         } => {
-            let program = load_rule_program(&rules)?;
-            let program_name = program.name.clone();
-            let rule_count = program.rules.len();
-            let state = AppState::new(program);
+            let rules_str = rules.to_string_lossy().to_string();
+            let state = AppState::from_path(&rules_str)?;
+            let kb_name = state.kb.read().await.name().to_string();
+            let rule_count = state.kb.read().await.rule_count();
 
             let rest_addr: SocketAddr = format!("0.0.0.0:{}", rest_port).parse()?;
             let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
             println!(
                 "\n{}",
-                " 🚀 STARTING REAL-TIME RULES ENGINE MICROSERVICE 🚀 "
+                " 🚀 STARTING REAL-TIME RULES ENGINE MICROSERVICE (via KSD-CO/rust-rule-engine) 🚀 "
                     .bold()
                     .on_green()
                     .black()
             );
             println!(
-                "  • Loaded Ruleset:  {} ({} rules)",
-                program_name.cyan().bold(),
+                "  • Loaded Knowledge Base: {} ({} rules)",
+                kb_name.cyan().bold(),
                 rule_count
             );
             println!(
-                "  • REST Endpoint:   {}",
+                "  • REST Endpoint:         {}",
                 format!("http://localhost:{}/api/v1/evaluate", rest_port)
                     .yellow()
                     .bold()
             );
             println!(
-                "  • gRPC Service:    {}",
+                "  • gRPC Service:          {}",
                 format!("http://localhost:{}", grpc_port).yellow().bold()
             );
             println!(
-                "  • Health Check:    {}",
+                "  • Health Check:          {}",
                 format!("http://localhost:{}/health", rest_port).dimmed()
             );
             println!(
-                "  • Inspection:      {}\n",
+                "  • Inspection:            {}\n",
                 format!("http://localhost:{}/api/v1/inspect", rest_port).dimmed()
             );
 
@@ -174,11 +176,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             applicant,
             format,
         } => {
-            let program = load_rule_program(&rules)?;
-            let context = load_fact_context(&applicant)?;
+            let rules_str = rules.to_string_lossy().to_string();
+            let (kb, pass_mark) = load_knowledge_base_from_path(&rules_str)?;
+            let facts = load_fact_payload(&applicant)?;
 
-            let engine = Engine::new(program);
-            let report = engine.evaluate(&context)?;
+            let report = evaluate_facts(&kb, &facts, pass_mark)?;
 
             match format {
                 OutputFormat::Table => {
@@ -198,10 +200,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             applicants_dir,
             cutoff,
         } => {
-            let program = load_rule_program(&rules)?;
-            let engine = Engine::new(program);
+            let rules_str = rules.to_string_lossy().to_string();
+            let (kb, pass_mark) = load_knowledge_base_from_path(&rules_str)?;
 
             let mut results = Vec::new();
+            let start = Instant::now();
 
             for entry in fs::read_dir(&applicants_dir)? {
                 let entry = entry?;
@@ -209,17 +212,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let is_data_file = path
                     .extension()
                     .and_then(|e| e.to_str())
-                    .is_some_and(|e| e == "yaml" || e == "json");
-                if is_data_file
-                    && let Ok(ctx) = load_fact_context(&path)
-                    && let Ok(report) = engine.evaluate(&ctx)
-                {
-                    let file_name = path
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string();
-                    results.push((file_name, report));
+                    .is_some_and(|e| e == "yaml" || e == "yml" || e == "json");
+                if is_data_file {
+                    if let Ok(facts) = load_fact_payload(&path) {
+                        if let Ok(report) = evaluate_facts(&kb, &facts, pass_mark) {
+                            let file_name = path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string();
+                            results.push((file_name, report));
+                        }
+                    }
                 }
             }
 
@@ -230,15 +234,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .unwrap_or(std::cmp::Ordering::Equal)
             });
 
+            let elapsed = start.elapsed();
             println!(
                 "\n{}",
-                format!(
-                    " 🏆 BATCH RANKING & SELECTION DRAW: {} ",
-                    engine.program().name
-                )
-                .bold()
-                .on_purple()
-                .white()
+                format!(" 🏆 BATCH RANKING & SELECTION DRAW: {} ", kb.name())
+                    .bold()
+                    .on_purple()
+                    .white()
             );
             if let Some(cut) = cutoff {
                 println!(
@@ -246,7 +248,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     format!("{:.1} points", cut).yellow().bold()
                 );
             }
-            println!("  Total Candidates Evaluated: {}", results.len());
+            println!(
+                "  Total Candidates Evaluated: {} (in {:.2} ms)",
+                results.len(),
+                elapsed.as_secs_f64() * 1000.0
+            );
 
             let mut table = Table::new();
             table
@@ -302,95 +308,57 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Commands::Inspect { rules } => {
-            let program = load_rule_program(&rules)?;
+            let rules_str = rules.to_string_lossy().to_string();
+            let (kb, pass_mark) = load_knowledge_base_from_path(&rules_str)?;
             println!(
                 "\n{}",
-                format!(
-                    " 🔍 PROGRAM INSPECTION: {} (v{}) ",
-                    program.name, program.version
-                )
-                .bold()
-                .on_cyan()
-                .black()
+                format!(" 🔍 KNOWLEDGE BASE INSPECTION: {} ", kb.name())
+                    .bold()
+                    .on_cyan()
+                    .black()
             );
-            if let Some(desc) = &program.description {
-                println!("Description: {}", desc.dimmed());
-            }
-            if let Some(pass) = program.pass_mark_threshold {
+            println!("  Rule Count: {}", kb.rule_count().to_string().yellow().bold());
+            if let Some(pass) = pass_mark {
                 println!(
-                    "Pass Mark Threshold: {}",
+                    "  Pass Mark Threshold: {}",
                     format!("{:.1} points", pass).yellow().bold()
                 );
             }
-            if let Some(total_cap) = program.total_points_cap {
-                println!(
-                    "Overall Total Cap: {}",
-                    format!("{:.1} points", total_cap).yellow().bold()
-                );
+
+            let rules = kb.get_rules();
+            let mut table = Table::new();
+            table
+                .load_preset(UTF8_FULL)
+                .set_content_arrangement(ContentArrangement::Dynamic)
+                .set_header(vec![
+                    Cell::new("Salience").fg(Color::Yellow),
+                    Cell::new("Rule Name").fg(Color::Cyan),
+                    Cell::new("Activation Group").fg(Color::Magenta),
+                    Cell::new("Description").fg(Color::White),
+                ]);
+
+            for r in rules {
+                table.add_row(vec![
+                    Cell::new(r.salience.to_string()).fg(Color::Yellow),
+                    Cell::new(&r.name).fg(Color::Cyan),
+                    Cell::new(r.activation_group.as_deref().unwrap_or("none")).fg(Color::Magenta),
+                    Cell::new(r.description.as_deref().unwrap_or("")),
+                ]);
             }
 
-            println!("\n{}", "📊 Category Budgets & Sub-Caps:".bold().underline());
-            for cat in program.categories.values() {
-                let cap_str = cat
-                    .max_points
-                    .map(|p| format!("{:.1} pts", p))
-                    .unwrap_or_else(|| "No Cap".to_string());
-                println!(
-                    "  • {:<25} -> Max: {}",
-                    cat.display_name.cyan(),
-                    cap_str.yellow()
-                );
-            }
-
-            println!("\n{}", "📜 Defined Rules by Phase:".bold().underline());
-            let mut rules_by_phase: std::collections::BTreeMap<
-                String,
-                Vec<&rust_rules_engine::Rule>,
-            > = std::collections::BTreeMap::new();
-            for r in &program.rules {
-                rules_by_phase.entry(r.phase.clone()).or_default().push(r);
-            }
-
-            for (phase, rules) in rules_by_phase {
-                println!(
-                    "\n  [{}] ({} rules)",
-                    phase.to_uppercase().magenta().bold(),
-                    rules.len()
-                );
-                for r in rules {
-                    let gate_tag = if r.is_eligibility_gate {
-                        "[GATE]".red()
-                    } else {
-                        "".normal()
-                    };
-                    let group_tag = r
-                        .activation_group
-                        .as_ref()
-                        .map(|g| format!("[XOR: {}]", g).yellow())
-                        .unwrap_or_default();
-                    println!(
-                        "    • {:<35} (Priority: {:>4}) {} {}",
-                        r.name, r.priority, gate_tag, group_tag
-                    );
-                }
-            }
-            println!();
+            println!("{table}\n");
         }
     }
 
     Ok(())
 }
 
-fn load_rule_program(path: &Path) -> Result<RuleProgram, Box<dyn std::error::Error>> {
-    RuleProgram::from_path(path)
-}
-
-fn load_fact_context(path: &Path) -> Result<FactContext, Box<dyn std::error::Error>> {
+fn load_fact_payload(path: &Path) -> Result<rust_rule_engine::Facts, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
     let val: serde_json::Value = if path.extension().and_then(|e| e.to_str()) == Some("json") {
         serde_json::from_str(&content)?
     } else {
         serde_yaml::from_str(&content)?
     };
-    Ok(FactContext::from_value(val))
+    Ok(json_to_facts(&val))
 }

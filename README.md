@@ -34,6 +34,23 @@ An educational reference project showcasing **idiomatic Rust best practices** fo
 
 ---
 
+## 🚀 KSD-CO/rust-rule-engine Showcase & Examples
+
+This repository serves as a comprehensive, real-world examples suite for **[`KSD-CO/rust-rule-engine`](https://github.com/KSD-CO/rust-rule-engine)** (`rust-rule-engine = "1.21"`).
+
+All upstream capabilities—**Grule Rule Language (GRL)** parsing, **RETE-UL forward chaining**, **goal-driven backward chaining**, and **streaming CEP time windows**—are demonstrated with fully runnable examples:
+
+| Example | Command | Description | Key Features |
+|---|---|---|---|
+| **Quickstart** | `cargo run --example rust_rule_engine_quickstart` | Hello World & Working Memory | `RuleEngineBuilder`, `RustRuleEngine`, `Facts`, `Value` |
+| **UK Points System** | `cargo run --example rust_rule_engine_uk_immigration` | Statutory UK Skilled Worker policy | GRL ingestion (`.grl`), `salience`, `activation-group` XOR, custom action handlers |
+| **Canada CRS System** | `cargo run --example rust_rule_engine_canada_crs` | Express Entry 1200-pt system | Multi-phase forward-chaining, language mastery inference, skill transferability |
+| **RETE-UL Network** | `cargo run --example rust_rule_engine_rete` | RETE-UL pattern matching | `IncrementalEngine`, `GrlReteLoader`, `TypedFacts`, alpha/beta memories |
+| **Backward Chaining** | `cargo run --example rust_rule_engine_backward_chaining` | Goal-driven proof discovery | `BackwardEngine`, `query`, proof traces, hypothesis rejection |
+| **Streaming CEP** | `cargo run --example rust_rule_engine_streaming` | Real-time event window processing | `TimeWindow` (sliding/tumbling), `StreamEvent`, burst fraud alerts |
+
+---
+
 ## 🚀 Quick Start & How to Run
 
 ### 1. Prerequisites
@@ -185,28 +202,29 @@ cargo run --example realtime_rest_client
 # 3. Real-Time gRPC Protobuf Client Demo
 cargo run --example realtime_grpc_client
 
-# 4. Multi-Format Ingestion (YAML, JSON, GRL) Demo
+# 4. Multi-Format Ingestion (YAML, JSON, GRL) & Parity Demo
 cargo run --example rule_formats_demo
 
-# 5. Real-Time Candidate Advisor & What-If Pathway Simulations
+# 5. Global Travel Intelligence Demo (1000+ History Records & 4-Layer Inferencing)
+cargo run --example travel_intelligence_demo
+
+# 6. Real-Time Candidate Advisor & What-If Pathway Simulations
 cargo run --example realtime_advisor_demo
 
-# 6. Working Memory Mutation & Forward Chaining Demo
+# 7. Working Memory Mutation & Forward Chaining Demo
 cargo run --example drools_inference_demo
-
-# 7. Canada Express Entry Programmatic Evaluation Demo
-cargo run --example canada_crs_demo
 ```
 
 ### Rust API Usage Example
 
 ```rust
-use rust_rules_engine::{Engine, FactContext, RuleProgram};
+use rust_rules_engine::{
+    evaluate_facts, json_to_facts, load_knowledge_base_from_path,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 1. Load rule program from YAML or JSON
-    let program = RuleProgram::from_yaml_file("rules/canada_crs_express_entry.yaml")?;
-    let engine = Engine::new(program);
+    // 1. Load KnowledgeBase from native GRL rule file (via KSD-CO/rust-rule-engine)
+    let (kb, categories) = load_knowledge_base_from_path("rules/uk_skilled_worker_points.grl")?;
 
     // 2. Ingest fact data (any Serde-compatible struct or JSON value)
     let fact_data = serde_json::json!({
@@ -226,10 +244,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "work_experience": { "domestic_years": 2, "foreign_years": 3 }
         }
     });
-    let context = FactContext::from_value(fact_data);
+    let facts = json_to_facts(&fact_data)?;
 
-    // 3. Evaluate rules
-    let report = engine.evaluate(&context)?;
+    // 3. Evaluate rules using upstream rust-rule-engine with itemized audit report
+    let report = evaluate_facts(&kb, facts, &categories, 70.0)?;
 
     println!("Total Points: {:.1}", report.total_score);
     println!("Eligible: {}", report.is_eligible());
@@ -245,20 +263,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 🎯 Drools Parity Highlights
 
-| Drools Capability | De Facto Status | Rust Rules Engine Implementation Note |
+| Drools Capability | De Facto Status | KSD-CO/rust-rule-engine Implementation Note |
 |---|:---:|---|
-| Pattern Matching (LHS) | **Built-in** | `Condition::Compare` with operators (`eq`, `neq`, `gte`, `lte`, `between`, `in`, `matches_regex`) |
-| Dot-Path Traversal & Safe Nulls | **Built-in** | Non-panicking path resolution returning safe `Option` values (three-valued logic) |
-| Salience & Rule Priorities | **Built-in** | Rules sorted and executed in descending priority order |
-| Modular Rule Folders | **Built-in** | `RuleProgram::from_directory` auto-merges fragmented rules from directories |
-| 2D Score Matrix & Lookups | **Built-in** | `PointsFormula::MatrixLookup` & `PointsFormula::Lookup` |
-| Explainability & Audit Traces | **Built-in** | Zero-allocation `AuditReport` with itemized rule firing traces |
-| Multi-Fact Relational Joins | *Custom* | *Can be done, but you have to write cross-fact join logic* |
-| Temporal CEP Sliding Windows | *Custom* | *Can be done, but you have to write timestamp delta validation* |
-| Collection Accumulators (`sum`, `fte`) | *Custom* | *Can be done, but you have to write custom reducer actions* |
-| Forward Chaining Reactivity | *Custom* | *Can be done, but you have to write an agenda dependency tracker* |
-| Activation Groups (XOR Mutual) | *Custom* | *Can be done, but you have to write activation group state tracking* |
-| Spreadsheet Decision Tables | *Custom* | *Can be done, but you have to write spreadsheet parser & hit policy evaluators* |
+| Pattern Matching (LHS) | **Built-in** | Grule Rule Language (`when { ... }`) with full arithmetic and logical expressions |
+| Dot-Path Traversal & Safe Nulls | **Built-in** | Non-panicking path resolution returning safe `Value::Null` / `Option` |
+| Salience & Rule Priorities | **Built-in** | Upstream `salience <N>` execution ordering |
+| Activation Groups (XOR Mutual) | **Built-in** | Upstream `activation-group "<group>"` for exclusive option competition |
+| Forward Chaining Reactivity | **Built-in** | RETE-UL pattern matching and working memory mutation |
+| Backward Chaining | **Built-in** | Upstream `BackwardEngine` for goal-driven proof discovery |
+| Complex Event Processing (CEP) | **Built-in** | Upstream `TimeWindow` (sliding & tumbling windows) for real-time streaming |
+| Modular Rule Loading | **Built-in** | `load_knowledge_base_from_path` auto-loads `.grl`, `.yaml`, or `.json` rule files |
+| Explainability & Audit Traces | **Built-in** | Zero-allocation `AuditReport` with execution callbacks and itemized rule firing traces |
 
 ---
 
@@ -269,27 +284,22 @@ rust-rules-engine-examples/
 ├── SPECIFICATION.md          # Formal Technical Specification
 ├── README.md                 # Project Overview & How-To Guide
 ├── docs/
-│   └── DROOLS_PARITY_MATRIX.md # Exhaustive Drools Feature Parity Matrix
+│   ├── DROOLS_PARITY_MATRIX.md # Exhaustive Drools Feature Parity Matrix
+│   └── LLM_RUST_PITFALLS.md    # Lessons Learned & Pitfalls for LLMs
 ├── proto/
 │   └── rules_engine.proto    # gRPC & Protobuf Service Contract Definition
 ├── src/
-│   ├── core/                 # PLATFORM: Core Engine, AST, Evaluator, Context, Audit
-│   │   ├── ast.rs            # Declarative AST Nodes (Condition, Action, PointsFormula)
-│   │   ├── audit.rs          # Zero-Allocation Structured Audit & Table Formatter
-│   │   ├── context.rs        # FactContext & Safe Dot-Path Traversal (3-Valued Logic)
-│   │   ├── error.rs          # Typed Error Handling
-│   │   ├── evaluator.rs      # Multi-Phase Execution Pipeline & Math Engines
-│   │   └── mod.rs
+│   ├── evaluator.rs          # APPLICATION: Audit Trail, Scoring Engine & Fact Mapper (backed by KSD-CO/rust-rule-engine)
 │   ├── server/               # PLATFORM: Multi-Protocol Network Serving Layer
 │   │   ├── dto.rs            # Separated Request & Response Data Transfer Objects
 │   │   ├── rest.rs           # Axum HTTP/JSON REST API & Router
 │   │   ├── grpc.rs           # Tonic HTTP/2 gRPC Service Implementation
 │   │   └── mod.rs
-│   ├── repl.rs               # PLATFORM: Interactive Terminal REPL Engine
+│   ├── repl.rs               # PLATFORM: Interactive Terminal REPL Shell (via KSD-CO/rust-rule-engine)
 │   ├── immigration/          # DOMAIN: Reference Merit-Based Immigration Models
 │   │   ├── models.rs         # Strongly Typed Domain Fact Structs
 │   │   └── mod.rs
-│   ├── lib.rs                # Library Root Export
+│   ├── lib.rs                # Library Root Export (re-exports KSD-CO/rust-rule-engine)
 │   └── main.rs               # CLI Tool (evaluate, batch, inspect, repl, serve)
 ├── rules/                    # Declarative YAML / JSON / GRL Rule Programs
 │   ├── canada_crs/           # Modular Rule Folder (Config, Core, Transferability, Bonus)

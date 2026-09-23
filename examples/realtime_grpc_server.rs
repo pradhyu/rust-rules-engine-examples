@@ -1,27 +1,29 @@
 use colored::Colorize;
-use rust_rules_engine::{AppState, RuleProgram, RulesGrpcService, RulesServiceServer};
+use rust_rules_engine::{AppState, RulesGrpcService, RulesServiceServer};
 use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let rules_dir = "rules/canada_crs/";
+    let rules_path = "rules/uk_skilled_worker_points.grl";
     let port = 50051;
     let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()?;
 
     println!(
         "\n{}",
-        " ⚡ REAL-TIME RULES ENGINE gRPC MICROSERVICE ⚡ "
+        " ⚡ REAL-TIME RULES ENGINE gRPC MICROSERVICE (Powered by KSD-CO/rust-rule-engine) ⚡ "
             .bold()
             .on_green()
             .black()
     );
-    let program = RuleProgram::from_path(rules_dir)?;
+    let state = AppState::from_path(rules_path)?;
+    let kb = state.kb.read().await;
     println!(
-        "  • Ruleset Loaded:  {} (v{}) [{} rules]",
-        program.name.cyan().bold(),
-        program.version,
-        program.rules.len()
+        "  • Knowledge Base:  {} [{} rules]",
+        kb.name().cyan().bold(),
+        kb.rule_count()
     );
+    drop(kb);
+
     println!(
         "  • gRPC Service:    {}",
         format!("http://localhost:{}", port).yellow().bold()
@@ -32,7 +34,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("     rpc BatchEvaluate (BatchEvaluateRequest) returns (BatchEvaluateResponse);");
     println!("     rpc SimulateWhatIf (WhatIfRequest) returns (WhatIfResponse);\n");
 
-    let state = AppState::new(program);
     let grpc_service = RulesGrpcService::new(state);
 
     tonic::transport::Server::builder()

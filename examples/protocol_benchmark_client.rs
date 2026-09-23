@@ -5,7 +5,7 @@ use reqwest::Client;
 use rust_rules_engine::proto::EvaluateRequest;
 use rust_rules_engine::proto::rules_service_client::RulesServiceClient;
 use rust_rules_engine::{
-    AppState, EvaluateApiResponse, RuleProgram, RulesGrpcService, RulesServiceServer,
+    AppState, EvaluateApiResponse, RulesGrpcService, RulesServiceServer,
     create_rest_router,
 };
 use std::fs;
@@ -15,7 +15,7 @@ use std::time::Instant;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "\n{}",
-        " 🏁 MULTI-PROTOCOL REAL-TIME BENCHMARK (REST JSON vs gRPC PROTOBUF) 🏁 "
+        " 🏁 MULTI-PROTOCOL REAL-TIME BENCHMARK (REST JSON vs gRPC PROTOBUF via KSD-CO/rust-rule-engine) 🏁 "
             .bold()
             .on_purple()
             .white()
@@ -24,8 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         " Comparing performance of identical test applicant data across HTTP/1.1 REST and HTTP/2 gRPC.\n"
     );
 
-    let program = RuleProgram::from_path("rules/canada_crs/")?;
-    let state = AppState::new(program);
+    let state = AppState::from_path("rules/canada_crs_express_entry.grl")?;
 
     // 1. Launch REST server on random port
     let rest_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;

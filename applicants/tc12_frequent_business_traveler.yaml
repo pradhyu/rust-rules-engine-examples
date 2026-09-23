@@ -1,0 +1,406 @@
+applicant:
+  id: "TRAV-FC-012"
+  name: "Elena Kowalski"
+  nationality: "PL"
+  passport_number: "PL8847291"
+  travel_history:
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "US"
+      region: "five_eyes"
+      entry_date: "2022-01-10"
+      exit_date: "2022-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "B1"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "DE"
+      region: "schengen"
+      entry_date: "2022-02-10"
+      exit_date: "2022-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "C"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "JP"
+      region: "other"
+      entry_date: "2023-01-10"
+      exit_date: "2023-01-17"
+      duration_days: 7
+      purpose: "business"
+      visa_type: "short_term"
+      overstay_days: 0
+    - country_code: "BR"
+      region: "other"
+      entry_date: "2023-02-10"
+      exit_date: "2023-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "BR"
+      region: "other"
+      entry_date: "2023-02-10"
+      exit_date: "2023-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "BR"
+      region: "other"
+      entry_date: "2023-02-10"
+      exit_date: "2023-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "BR"
+      region: "other"
+      entry_date: "2023-02-10"
+      exit_date: "2023-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0
+    - country_code: "BR"
+      region: "other"
+      entry_date: "2023-02-10"
+      exit_date: "2023-02-17"
+      duration_days: 7
+      purpose: "tourism"
+      visa_type: "visitor"
+      overstay_days: 0

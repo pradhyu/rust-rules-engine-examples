@@ -1,0 +1,17 @@
+id: "polyglot_uk_skilled_worker"
+name: "Polyglot UK Skilled Worker Rule Program"
+version: "2026.1"
+pass_mark_threshold: 70
+total_points_cap: 70
+
+categories:
+  mandatory_criteria:
+    name: "mandatory_criteria"
+    display_name: "Mandatory Non-Tradeable Criteria"
+    max_points: 50
+  tradeable_criteria:
+    name: "tradeable_criteria"
+    display_name: "Tradeable Points Options"
+    max_points: 20
+
+rules: []

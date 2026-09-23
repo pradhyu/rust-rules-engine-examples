@@ -1,32 +1,36 @@
 // ============================================================================
 // Canada Comprehensive Ranking System (CRS) - Express Entry
-// Grule Rule Language (GRL) Implementation Specification
+// Generic Rule Language (GRL) Implementation Specification for KSD-CO/rust-rule-engine
 // ============================================================================
+// @id: "canada_crs_express_entry"
+// @name: "Comprehensive Ranking System (CRS) - Express Entry"
+// @version: "2026.2"
+// @total_cap: 1200
 
 // ----------------------------------------------------------------------------
 // PHASE 1: WORKING MEMORY ENRICHMENT & DERIVED INFERENCES
 // ----------------------------------------------------------------------------
 
-rule "crs_infer_clb9_proficiency" "Infer High First Language Mastery (CLB 9+ in all 4 abilities)" salience 1000 {
+rule "crs_infer_clb9_proficiency" "Infer High First Language Mastery (CLB 9+ in all 4 abilities)" salience 1000 no-loop {
     when
-        Applicant.Language.FirstOfficial.Reading >= 9 &&
-        Applicant.Language.FirstOfficial.Writing >= 9 &&
-        Applicant.Language.FirstOfficial.Listening >= 9 &&
-        Applicant.Language.FirstOfficial.Speaking >= 9
+        applicant.language.first_official.clb_reading >= 9 &&
+        applicant.language.first_official.clb_writing >= 9 &&
+        applicant.language.first_official.clb_listening >= 9 &&
+        applicant.language.first_official.clb_speaking >= 9
     then
-        Applicant.SetAttribute("derived.has_clb9_mastery", true);
-        Applicant.AddTag("clb9_language_mastery");
+        applicant.derived_has_clb9_mastery = true;
+        applicant.award_tag("clb9_language_mastery");
         Log("Inferred: Applicant holds CLB 9+ across Reading, Writing, Listening, and Speaking");
 }
 
-rule "crs_infer_clb7_proficiency" "Infer Moderate First Language Mastery (CLB 7+ in all 4 abilities)" salience 950 {
+rule "crs_infer_clb7_proficiency" "Infer Moderate First Language Mastery (CLB 7+ in all 4 abilities)" salience 950 no-loop {
     when
-        Applicant.Language.FirstOfficial.Reading >= 7 &&
-        Applicant.Language.FirstOfficial.Writing >= 7 &&
-        Applicant.Language.FirstOfficial.Listening >= 7 &&
-        Applicant.Language.FirstOfficial.Speaking >= 7
+        applicant.language.first_official.clb_reading >= 7 &&
+        applicant.language.first_official.clb_writing >= 7 &&
+        applicant.language.first_official.clb_listening >= 7 &&
+        applicant.language.first_official.clb_speaking >= 7
     then
-        Applicant.SetAttribute("derived.has_clb7_mastery", true);
+        applicant.derived_has_clb7_mastery = true;
         Log("Inferred: Applicant holds CLB 7+ baseline threshold across all 4 abilities");
 }
 
@@ -34,74 +38,75 @@ rule "crs_infer_clb7_proficiency" "Infer Moderate First Language Mastery (CLB 7+
 // PHASE 2: CORE HUMAN CAPITAL FACTORS (Single vs Married)
 // ----------------------------------------------------------------------------
 
-rule "crs_core_age_single" "Core Human Capital: Age Points (Single Candidate, Peak 20-29)" salience 500 {
+rule "crs_core_age_single" "Core Human Capital: Age Points (Single Candidate, Peak 20-29)" salience 500 no-loop {
     when
-        Applicant.MaritalStatus == "single" &&
-        Applicant.Age >= 20 &&
-        Applicant.Age <= 29
+        applicant.marital_status == "single" &&
+        applicant.age >= 20 &&
+        applicant.age <= 29
     then
-        Applicant.AwardPoints("core_human_capital", 110.0);
+        applicant.award_points("core_human_capital", 110.0);
 }
 
-rule "crs_core_education_master_single" "Core Human Capital: Master's Degree (Single Candidate)" salience 490 {
+rule "crs_core_education_master_single" "Core Human Capital: Master's Degree (Single Candidate)" salience 490 no-loop {
     when
-        Applicant.MaritalStatus == "single" &&
-        Applicant.Education.HighestDegree in ["master", "professional_degree"]
+        applicant.marital_status == "single" &&
+        applicant.education.highest_degree in ["master", "professional_degree"]
     then
-        Applicant.AwardPoints("core_human_capital", 135.0);
+        applicant.award_points("core_human_capital", 135.0);
 }
 
-rule "crs_core_canadian_experience_single" "Core Human Capital: Canadian Work Experience (Single Candidate, 2 Years)" salience 480 {
+rule "crs_core_canadian_experience_single" "Core Human Capital: Canadian Work Experience (Single Candidate, 2 Years)" salience 480 no-loop {
     when
-        Applicant.MaritalStatus == "single" &&
-        Applicant.WorkExperience.DomesticYears == 2
+        applicant.marital_status == "single" &&
+        applicant.work_experience.domestic_years == 2
     then
-        Applicant.AwardPoints("core_human_capital", 53.0);
+        applicant.award_points("core_human_capital", 53.0);
 }
 
 // ----------------------------------------------------------------------------
 // PHASE 3: SKILL TRANSFERABILITY FACTORS (Max 100 Category Cap)
+// Forward-chains on Phase 1 inferred facts: derived_has_clb9_mastery
 // ----------------------------------------------------------------------------
 
-rule "crs_transferability_education_clb9" "Skill Transferability: Master's Degree + CLB 9+ Language Mastery" salience 300 {
+rule "crs_transferability_education_clb9" "Skill Transferability: Master's Degree + CLB 9+ Language Mastery" salience 300 no-loop {
     when
-        Applicant.Education.HighestDegree in ["master", "doctorate", "two_or_more_degrees"] &&
-        Applicant.GetAttribute("derived.has_clb9_mastery") == true
+        applicant.education.highest_degree in ["master", "doctorate", "two_or_more_degrees"] &&
+        applicant.derived_has_clb9_mastery == true
     then
-        Applicant.AwardPoints("skill_transferability", 50.0);
+        applicant.award_points("skill_transferability", 50.0);
 }
 
-rule "crs_transferability_foreign_work_clb9" "Skill Transferability: 3+ Years Foreign Work Experience + CLB 9+" salience 290 {
+rule "crs_transferability_foreign_work_clb9" "Skill Transferability: 3+ Years Foreign Work Experience + CLB 9+" salience 290 no-loop {
     when
-        Applicant.WorkExperience.ForeignYears >= 3 &&
-        Applicant.GetAttribute("derived.has_clb9_mastery") == true
+        applicant.work_experience.foreign_years >= 3 &&
+        applicant.derived_has_clb9_mastery == true
     then
-        Applicant.AwardPoints("skill_transferability", 50.0);
+        applicant.award_points("skill_transferability", 50.0);
 }
 
-rule "crs_transferability_foreign_work_canadian_work" "Skill Transferability: 3+ Years Foreign Work + 2+ Years Canadian Work" salience 280 {
+rule "crs_transferability_foreign_work_canadian_work" "Skill Transferability: 3+ Years Foreign Work + 2+ Years Canadian Work" salience 280 no-loop {
     when
-        Applicant.WorkExperience.ForeignYears >= 3 &&
-        Applicant.WorkExperience.DomesticYears >= 2
+        applicant.work_experience.foreign_years >= 3 &&
+        applicant.work_experience.domestic_years >= 2
     then
-        Applicant.AwardPoints("skill_transferability", 50.0);
+        applicant.award_points("skill_transferability", 50.0);
 }
 
 // ----------------------------------------------------------------------------
 // PHASE 4: ADDITIONAL BONUS FACTORS (Max 600 Category Cap)
 // ----------------------------------------------------------------------------
 
-rule "crs_bonus_provincial_nomination" "Enhanced Provincial Nomination Certificate" salience 200 {
+rule "crs_bonus_provincial_nomination" "Enhanced Provincial Nomination Certificate" salience 200 no-loop {
     when
-        Applicant.AdditionalFactors.ProvincialNomination == true
+        applicant.additional_factors.provincial_nomination == true
     then
-        Applicant.AwardPoints("additional_factors", 600.0);
-        Applicant.AddTag("provincial_nominee");
+        applicant.award_points("additional_factors", 600.0);
+        applicant.award_tag("provincial_nominee");
 }
 
-rule "crs_bonus_sibling_in_canada" "Brother or Sister in Canada (Citizen or Permanent Resident)" salience 190 {
+rule "crs_bonus_sibling_in_canada" "Brother or Sister in Canada (Citizen or Permanent Resident)" salience 190 no-loop {
     when
-        Applicant.AdditionalFactors.HasSiblingCitizenOrPr == true
+        applicant.additional_factors.has_sibling_citizen_or_pr == true
     then
-        Applicant.AwardPoints("additional_factors", 15.0);
+        applicant.award_points("additional_factors", 15.0);
 }

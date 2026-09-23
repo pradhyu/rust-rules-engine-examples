@@ -1,35 +1,42 @@
 // ============================================================================
 // UK Skilled Worker Points-Based System (2026.1)
-// Grule Rule Language (GRL) Implementation Specification
+// Generic Rule Language (GRL) Implementation Specification
 // ============================================================================
+// @id: "uk_skilled_worker_points"
+// @name: "UK Skilled Worker Points-Based System"
+// @version: "2026.1"
+// @pass_mark: 70
+// @total_cap: 70
+// @category: mandatory_criteria, Mandatory Non-Tradeable Criteria, 50
+// @category: tradeable_criteria, Tradeable Points Options, 20
 
 // ----------------------------------------------------------------------------
 // PHASE 1: MANDATORY CRITERIA (50 Points Required to Pass Gate)
 // ----------------------------------------------------------------------------
 
-rule "uk_sponsor_job_offer_join" "Job Offer from Licensed Sponsor" salience 1000 {
+rule "uk_sponsor_job_offer_join" "Job Offer from Licensed Sponsor" salience 1000 no-loop {
     when
-        Applicant.JobOffer.HasOffer == true &&
-        Applicant.JobOffer.Sponsor.IsLicensed == true &&
-        Applicant.JobOffer.Sponsor.LicenseRating == "A_rated"
+        applicant.job_offer.has_offer == true &&
+        applicant.job_offer.sponsor.is_licensed == true &&
+        applicant.job_offer.sponsor.license_rating == "A_rated"
     then
-        Applicant.AwardPoints("mandatory_criteria", 20.0);
+        applicant.award_points("mandatory_criteria", 20.0);
         Log("Mandatory Criterion Met: Valid A-rated Licensed Sponsor Job Offer (+20 pts)");
 }
 
-rule "uk_skill_level_rqf3" "Job at Appropriate Skill Level (RQF 3 or higher)" salience 950 {
+rule "uk_skill_level_rqf3" "Job at Appropriate Skill Level (RQF 3 or higher)" salience 950 no-loop {
     when
-        Applicant.JobOffer.RqfSkillLevel >= 3
+        applicant.job_offer.rqf_skill_level >= 3
     then
-        Applicant.AwardPoints("mandatory_criteria", 20.0);
+        applicant.award_points("mandatory_criteria", 20.0);
         Log("Mandatory Criterion Met: Job at RQF 3+ Skill Level (+20 pts)");
 }
 
-rule "uk_english_b1_gate" "English Language Proficiency at CEFR Level B1" salience 900 {
+rule "uk_english_b1_gate" "English Language Proficiency at CEFR Level B1" salience 900 no-loop {
     when
-        Applicant.Language.CefrLevel in ["B1", "B2", "C1", "C2"]
+        applicant.language.cefr_level in ["B1", "B2", "C1", "C2"]
     then
-        Applicant.AwardPoints("mandatory_criteria", 10.0);
+        applicant.award_points("mandatory_criteria", 10.0);
         Log("Mandatory Criterion Met: English Language at CEFR B1+ (+10 pts)");
 }
 
@@ -38,30 +45,30 @@ rule "uk_english_b1_gate" "English Language Proficiency at CEFR Level B1" salien
 // Only the highest priority matching option in "uk_tradeable_points" will fire.
 // ----------------------------------------------------------------------------
 
-rule "uk_tradeable_option_a_salary" "Option A: Salary >= £38,700 and Going Rate" salience 500 activation-group "uk_tradeable_points" {
+rule "uk_tradeable_option_a_salary" "Option A: Salary >= £38,700 and Going Rate" salience 500 no-loop activation-group "uk_tradeable_points" {
     when
-        Applicant.JobOffer.AnnualSalary >= 38700.00 &&
-        Applicant.JobOffer.MeetsOccupationGoingRate == true
+        applicant.job_offer.annual_salary >= 38700.00 &&
+        applicant.job_offer.meets_occupation_going_rate == true
     then
-        Applicant.AwardPoints("tradeable_criteria", 20.0);
+        applicant.award_points("tradeable_criteria", 20.0);
         Log("Tradeable Option A Selected: Full Salary Threshold (£38,700+) Met (+20 pts)");
 }
 
-rule "uk_tradeable_option_b_stem_phd" "Option B: Relevant STEM PhD and Salary >= £30,960" salience 450 activation-group "uk_tradeable_points" {
+rule "uk_tradeable_option_b_stem_phd" "Option B: Relevant STEM PhD and Salary >= £30,960" salience 450 no-loop activation-group "uk_tradeable_points" {
     when
-        Applicant.Education.HighestDegree == "doctorate" &&
-        Applicant.Education.IsStem == true &&
-        Applicant.JobOffer.AnnualSalary >= 30960.00
+        applicant.education.highest_degree == "doctorate" &&
+        applicant.education.is_stem == true &&
+        applicant.job_offer.annual_salary >= 30960.00
     then
-        Applicant.AwardPoints("tradeable_criteria", 20.0);
+        applicant.award_points("tradeable_criteria", 20.0);
         Log("Tradeable Option B Selected: STEM Doctorate Discounted Threshold (£30,960+) Met (+20 pts)");
 }
 
-rule "uk_tradeable_option_c_shortage_occupation" "Option C: Immigration Salary List Job and Salary >= £30,960" salience 400 activation-group "uk_tradeable_points" {
+rule "uk_tradeable_option_c_shortage_occupation" "Option C: Immigration Salary List Job and Salary >= £30,960" salience 400 no-loop activation-group "uk_tradeable_points" {
     when
-        Applicant.JobOffer.IsOnImmigrationSalaryList == true &&
-        Applicant.JobOffer.AnnualSalary >= 30960.00
+        applicant.job_offer.is_on_immigration_salary_list == true &&
+        applicant.job_offer.annual_salary >= 30960.00
     then
-        Applicant.AwardPoints("tradeable_criteria", 20.0);
+        applicant.award_points("tradeable_criteria", 20.0);
         Log("Tradeable Option C Selected: Shortage / Immigration Salary List Job (£30,960+) Met (+20 pts)");
 }

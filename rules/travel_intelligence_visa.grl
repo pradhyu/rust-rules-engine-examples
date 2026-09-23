@@ -1,0 +1,293 @@
+/**
+ * Travel Intelligence Visa Assessment (GRL Specification)
+ *
+ * Generic Rule Language (GRL) specification featuring a 4-layer
+ * inferencing chain with high-volume historical travel records.
+ */
+// @id: "travel_intelligence_visa_assessment"
+// @name: "Global Travel Intelligence Visa Assessment"
+// @version: "2.0.0"
+// @pass_mark: 67
+// @total_cap: 300
+// @category: travel_profile, Travel Profile Score, 100
+// @category: compliance, Compliance & Risk Score, 50
+// @category: bonus, Decision Bonus, 100
+// @category: visa_tier, Visa Tier Score, 50
+
+// ============================================================================
+// Layer 1: Enrichment
+// Accumulate and aggregate data over arrays (e.g., travel_history)
+// ============================================================================
+
+rule TIV_Enrich_Sanctioned_Visits "Count visits to sanctioned countries" {
+    salience 900
+    when {
+        // Accumulate pattern: iterate applicant.travel_history[]
+        // Filter: country_code IN ("IR", "KP", "SY", "CU", "VE")
+        // Function: count
+        $count : accumulate(
+            $trip : TravelRecord() from applicant.travel_history,
+            $trip.country_code in ("IR", "KP", "SY", "CU", "VE"),
+            count($trip)
+        )
+    }
+    then {
+        SetAttribute("computed.sanctioned_visit_count", $count);
+    }
+}
+
+rule TIV_Enrich_Overstay_Count "Count trips with overstays" {
+    salience 900
+    when {
+        $count : accumulate(
+            $trip : TravelRecord() from applicant.travel_history,
+            $trip.overstay_days > 0,
+            count($trip)
+        )
+    }
+    then {
+        SetAttribute("computed.overstay_count", $count);
+    }
+}
+
+rule TIV_Enrich_Total_Trips "Count all travel entries" {
+    salience 900
+    when {
+        $count : accumulate(
+            $trip : TravelRecord() from applicant.travel_history,
+            true, // No filter, count all
+            count($trip)
+        )
+    }
+    then {
+        SetAttribute("computed.total_trip_count", $count);
+    }
+}
+
+rule TIV_Enrich_Schengen_Days "Sum duration_days in Schengen region" {
+    salience 900
+    when {
+        $sum : accumulate(
+            $trip : TravelRecord() from applicant.travel_history,
+            $trip.region == "schengen",
+            sum($trip.duration_days)
+        )
+    }
+    then {
+        SetAttribute("computed.schengen_days", $sum);
+    }
+}
+
+rule TIV_Enrich_Five_Eyes_Visits "Count visits to Five Eyes countries" {
+    salience 900
+    when {
+        $count : accumulate(
+            $trip : TravelRecord() from applicant.travel_history,
+            $trip.country_code in ("US", "GB", "CA", "AU", "NZ"),
+            count($trip)
+        )
+    }
+    then {
+        SetAttribute("computed.five_eyes_visit_count", $count);
+    }
+}
+
+rule TIV_Enrich_Conflict_Zone_Visits "Count visits to conflict zones" {
+    salience 900
+    when {
+        $count : accumulate(
+            $trip : TravelRecord() from applicant.travel_history,
+            $trip.country_code in ("AF", "IQ", "LY", "SO", "YE", "UA"),
+            count($trip)
+        )
+    }
+    then {
+        SetAttribute("computed.conflict_zone_count", $count);
+    }
+}
+
+// ============================================================================
+// Layer 2: Scoring
+// Risk Profiling reading Layer 1 computed facts
+// ============================================================================
+
+rule TIV_Score_Travel_Breadth_High "High travel breadth" {
+    activation-group "travel_breadth_band"
+    salience 720
+    when {
+        ComputedFact( total_trip_count >= 200 )
+    }
+    then {
+        AwardPoints(75);
+    }
+}
+
+rule TIV_Score_Travel_Breadth_Medium "Medium travel breadth" {
+    activation-group "travel_breadth_band"
+    salience 710
+    when {
+        ComputedFact( total_trip_count >= 100 )
+    }
+    then {
+        AwardPoints(50);
+    }
+}
+
+rule TIV_Score_Travel_Breadth_Low "Low travel breadth" 
+    activation-group "travel_breadth_band"
+    salience 700
+    when {
+        ComputedFact( total_trip_count >= 50 )
+    }
+    then {
+        AwardPoints(30);
+    }
+}
+
+rule TIV_Score_Five_Eyes_Familiarity "Five Eyes Trusted" {
+    salience 700
+    when {
+        ComputedFact( five_eyes_visit_count >= 5 )
+    }
+    then {
+        AwardPoints(25);
+        SetAttribute("computed.five_eyes_trusted", true);
+    }
+}
+
+rule TIV_Score_Compliance_Clean "Clean compliance record" {
+    activation-group "compliance_level"
+    salience 710
+    when {
+        ComputedFact( overstay_count == 0, sanctioned_visit_count == 0 )
+    }
+    then {
+        AwardPoints(50);
+        SetAttribute("computed.compliance_risk_level", "low");
+    }
+}
+
+rule TIV_Score_Compliance_Moderate "Moderate compliance record" {
+    activation-group "compliance_level"
+    salience 700
+    when {
+        // In Drools, rules in a group run based on salience. We check explicitly here:
+        ComputedFact( overstay_count >= 1, overstay_count <= 3, sanctioned_visit_count == 0 )
+    }
+    then {
+        AwardPoints(20);
+        SetAttribute("computed.compliance_risk_level", "moderate");
+    }
+}
+
+rule TIV_Score_Compliance_High "High compliance risk" {
+    activation-group "compliance_level"
+    salience 690
+    when {
+        ComputedFact( overstay_count > 3 ) or ComputedFact( sanctioned_visit_count > 0 )
+    }
+    then {
+        AwardPoints(0);
+        SetAttribute("computed.compliance_risk_level", "high");
+    }
+}
+
+rule TIV_Score_Schengen_Overstay "Schengen overstay flag" {
+    salience 690
+    when {
+        ComputedFact( schengen_days > 180 )
+    }
+    then {
+        SetAttribute("computed.schengen_overstay_flag", true);
+    }
+}
+
+rule TIV_Score_Conflict_Exposure "Security review required" {
+    salience 690
+    when {
+        ComputedFact( conflict_zone_count >= 3 )
+    }
+    then {
+        SetAttribute("computed.security_review_required", true);
+    }
+}
+
+// ============================================================================
+// Layer 3: Capping
+// Cross-Rule Decision Logic
+// ============================================================================
+
+rule TIV_Cap_Auto_Approve "Auto Approve" {
+    activation-group "final_decision"
+    salience 510
+    when {
+        ComputedFact( compliance_risk_level == "low", five_eyes_trusted == true, security_review_required != true )
+    }
+    then {
+        SetAttribute("computed.decision", "auto_approve");
+        AwardPoints(100);
+    }
+}
+
+rule TIV_Cap_Manual_Review "Manual Review" {
+    activation-group "final_decision"
+    salience 500
+    when {
+        ComputedFact( compliance_risk_level == "moderate" ) or ComputedFact( security_review_required == true )
+    }
+    then {
+        SetAttribute("computed.decision", "manual_review");
+    }
+}
+
+rule TIV_Cap_Auto_Deny "Auto Deny" {
+    activation-group "final_decision"
+    salience 490
+    when {
+        ComputedFact( compliance_risk_level == "high", schengen_overstay_flag == true )
+    }
+    then {
+        SetEligibility(false);
+    }
+}
+
+// ============================================================================
+// Layer 4: Verdict
+// Visa Terms
+// ============================================================================
+
+rule TIV_Verdict_Premium "Premium Visa Tier" {
+    activation-group "visa_tier"
+    salience 310
+    when {
+        ComputedFact( decision == "auto_approve", total_trip_count >= 100 )
+    }
+    then {
+        AwardPoints(50);
+        SetAttribute("computed.visa_duration", 10);
+    }
+}
+
+rule TIV_Verdict_Standard "Standard Visa Tier" {
+    activation-group "visa_tier"
+    salience 300
+    when {
+        ComputedFact( decision == "auto_approve", total_trip_count < 100 )
+    }
+    then {
+        AwardPoints(25);
+        SetAttribute("computed.visa_duration", 5);
+    }
+}
+
+rule TIV_Verdict_Restricted "Restricted Visa Tier" {
+    activation-group "visa_tier"
+    salience 290
+    when {
+        ComputedFact( decision == "manual_review" )
+    }
+    then {
+        AwardPoints(10);
+        SetAttribute("computed.visa_duration", 1);
+    }
+}

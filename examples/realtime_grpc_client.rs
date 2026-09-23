@@ -1,7 +1,7 @@
 use colored::Colorize;
 use rust_rules_engine::proto::rules_service_client::RulesServiceClient;
 use rust_rules_engine::proto::{BatchEvaluateRequest, EvaluateRequest, WhatIfRequest};
-use rust_rules_engine::{AppState, RuleProgram, RulesGrpcService, RulesServiceServer};
+use rust_rules_engine::{AppState, RulesGrpcService, RulesServiceServer};
 use std::fs;
 use std::time::Instant;
 
@@ -9,15 +9,14 @@ use std::time::Instant;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "\n{}",
-        " ⚡ gRPC PROTOCOL REAL-TIME CLIENT DEMO (HTTP/2 + Protobuf) ⚡ "
+        " ⚡ gRPC PROTOCOL REAL-TIME CLIENT DEMO (HTTP/2 + Protobuf via KSD-CO/rust-rule-engine) ⚡ "
             .bold()
             .on_green()
             .black()
     );
 
     // 1. Launch embedded local gRPC microservice on random available port
-    let program = RuleProgram::from_path("rules/canada_crs/")?;
-    let state = AppState::new(program);
+    let state = AppState::from_path("rules/canada_crs_express_entry.grl")?;
     let grpc_service = RulesGrpcService::new(state);
 
     let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
@@ -67,8 +66,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         resp.latency_micros
     );
     println!(
-        "   • Total Score:        {:.1} points",
-        resp.total_score.to_string().cyan().bold()
+        "   • Total Score:        {} points",
+        format!("{:.1}", resp.total_score).cyan().bold()
     );
     println!(
         "   • Eligibility:        {}",

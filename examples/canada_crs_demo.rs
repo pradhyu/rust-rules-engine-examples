@@ -1,14 +1,13 @@
 use rust_rules_engine::{
-    ApplicantProfile, EducationCredential, Engine, FactContext, LanguageAbilityScore,
-    LanguageProficiency, RuleProgram, WorkExperience,
+    ApplicantProfile, EducationCredential, LanguageAbilityScore, LanguageProficiency,
+    WorkExperience, evaluate_facts, json_to_facts, load_knowledge_base_from_path,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🍁 Canada Express Entry CRS Programmatic API Demo 🍁\n");
+    println!("🍁 Canada Express Entry CRS Programmatic API Demo (via KSD-CO/rust-rule-engine) 🍁\n");
 
-    // 1. Load declarative RuleProgram from YAML
-    let program = RuleProgram::from_yaml_file("rules/canada_crs_express_entry.yaml")?;
-    let engine = Engine::new(program);
+    // 1. Load KnowledgeBase from GRL
+    let (kb, pass_mark) = load_knowledge_base_from_path("rules/canada_crs_express_entry.grl")?;
 
     // 2. Create strongly-typed ApplicantProfile in Rust
     let profile = ApplicantProfile {
@@ -52,19 +51,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         spouse: None,
     };
 
-    // 3. Ingest profile into FactContext (under "applicant" root)
+    // 3. Ingest profile into Facts (under "applicant" root)
     let fact_wrapper = serde_json::json!({ "applicant": profile });
-    let context = FactContext::from_value(fact_wrapper);
+    let facts = json_to_facts(&fact_wrapper);
 
     // 4. Evaluate and generate complete audit report
-    let report = engine.evaluate(&context)?;
-
-    // 5. Inspect structured result
-    println!("Candidate ID: {:?}", report.applicant_id);
-    println!("Eligibility: {}", report.is_eligible());
-    println!("Calculated CRS Score: {:.1} / 1200", report.total_score);
-
-    // 6. Print console audit breakdown
+    let report = evaluate_facts(&kb, &facts, pass_mark)?;
     report.print_audit_table();
 
     Ok(())

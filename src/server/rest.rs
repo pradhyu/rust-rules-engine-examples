@@ -5,11 +5,15 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
+use rust_rule_engine::KnowledgeBase;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
 
-use crate::core::{AuditReport, Engine, FactContext, RuleProgram};
+use crate::evaluator::{
+    AuditReport, evaluate_facts, json_to_facts, load_knowledge_base_from_path,
+};
 use crate::server::dto::{
     BatchRequestDto, BatchResponseDto, EvaluateRequestDto, EvaluateResponseDto,
     HealthCheckResponseDto, PathwayOptionDto, RankedCandidateDto, RulesetInspectionDto,
@@ -27,17 +31,23 @@ pub type SimulateApiResponse = SimulateResponseDto;
 /// Shared Application State for REST & gRPC Services
 #[derive(Clone)]
 pub struct AppState {
-    pub engine: Arc<RwLock<Engine>>,
-    pub default_rules_name: Arc<RwLock<String>>,
+    pub kb: Arc<RwLock<KnowledgeBase>>,
+    pub rules_path: Arc<RwLock<String>>,
+    pub pass_mark: Arc<RwLock<Option<f64>>>,
 }
 
 impl AppState {
-    pub fn new(initial_program: RuleProgram) -> Self {
-        let name = initial_program.name.clone();
+    pub fn new(kb: KnowledgeBase, rules_path: String, pass_mark: Option<f64>) -> Self {
         Self {
-            engine: Arc::new(RwLock::new(Engine::new(initial_program))),
-            default_rules_name: Arc::new(RwLock::new(name)),
+            kb: Arc::new(RwLock::new(kb)),
+            rules_path: Arc::new(RwLock::new(rules_path)),
+            pass_mark: Arc::new(RwLock::new(pass_mark)),
         }
+    }
+
+    pub fn from_path(path: &str) -> Result<Self, crate::evaluator::EvaluatorError> {
+        let (kb, pass_mark) = load_knowledge_base_from_path(path)?;
+        Ok(Self::new(kb, path.to_string(), pass_mark))
     }
 }
 
@@ -57,7 +67,7 @@ pub fn create_rest_router(state: AppState) -> Router {
 async fn health_check() -> impl IntoResponse {
     Json(HealthCheckResponseDto {
         status: "UP".to_string(),
-        service: "rust-rules-engine-realtime".to_string(),
+        service: "rust-rule-engine-realtime".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         timestamp: chrono::Utc::now().to_rfc3339(),
     })
@@ -68,25 +78,29 @@ async fn reload_ruleset(
     State(state): State<AppState>,
     Json(payload): Json<crate::server::dto::ReloadRulesRequestDto>,
 ) -> Result<Json<crate::server::dto::ReloadRulesResponseDto>, (StatusCode, String)> {
-    let program = RuleProgram::from_path(&payload.rules_path).map_err(|e| {
+    let (new_kb, pass_mark) = load_knowledge_base_from_path(&payload.rules_path).map_err(|e| {
         (
             StatusCode::BAD_REQUEST,
             format!("Failed loading rules from '{}': {}", payload.rules_path, e),
         )
     })?;
 
-    let ruleset_id = program.id.clone();
-    let ruleset_name = program.name.clone();
-    let version = program.version.clone();
-    let rule_count = program.rules.len();
+    let ruleset_id = new_kb.name().to_string();
+    let ruleset_name = new_kb.name().to_string();
+    let version = format!("v{}", new_kb.version());
+    let rule_count = new_kb.rule_count();
 
     {
-        let mut engine_guard = state.engine.write().await;
-        *engine_guard = Engine::new(program);
+        let mut kb_guard = state.kb.write().await;
+        *kb_guard = new_kb;
     }
     {
-        let mut name_guard = state.default_rules_name.write().await;
-        *name_guard = ruleset_name.clone();
+        let mut path_guard = state.rules_path.write().await;
+        *path_guard = payload.rules_path.clone();
+    }
+    {
+        let mut pass_guard = state.pass_mark.write().await;
+        *pass_guard = pass_mark;
     }
 
     Ok(Json(crate::server::dto::ReloadRulesResponseDto {
@@ -104,17 +118,17 @@ async fn reload_ruleset(
 
 /// Inspect current active ruleset
 async fn inspect_ruleset(State(state): State<AppState>) -> impl IntoResponse {
-    let engine = state.engine.read().await;
-    let p = engine.program();
+    let kb = state.kb.read().await;
+    let pass_mark = *state.pass_mark.read().await;
     Json(RulesetInspectionDto {
-        id: p.id.clone(),
-        name: p.name.clone(),
-        version: p.version.clone(),
-        description: p.description.clone(),
-        pass_mark_threshold: p.pass_mark_threshold,
-        total_points_cap: p.total_points_cap,
-        categories: p.categories.clone(),
-        rule_count: p.rules.len(),
+        id: kb.name().to_string(),
+        name: kb.name().to_string(),
+        version: format!("v{}", kb.version()),
+        description: Some("Knowledge Base powered by KSD-CO/rust-rule-engine".to_string()),
+        pass_mark_threshold: pass_mark,
+        total_points_cap: None,
+        categories: HashMap::new(),
+        rule_count: kb.rule_count(),
     })
 }
 
@@ -133,27 +147,19 @@ async fn evaluate_applicant(
 ) -> Result<Json<EvaluateResponseDto>, (StatusCode, String)> {
     let start = Instant::now();
     let norm_val = normalize_fact_value(payload.applicant);
+    let facts = json_to_facts(&norm_val);
 
-    // Check if a custom rules path was specified in request
-    let report: AuditReport = if let Some(path) = &payload.rules_path {
-        let program = if std::path::Path::new(path).is_dir() {
-            RuleProgram::from_directory(path)
-                .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
-        } else {
-            RuleProgram::from_file(path).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
-        };
-        let engine = Engine::new(program);
-        let ctx = FactContext::from_value(norm_val);
-        engine
-            .evaluate(&ctx)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    let (kb, pass_mark) = if let Some(path) = &payload.rules_path {
+        load_knowledge_base_from_path(path)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
     } else {
-        let engine = state.engine.read().await;
-        let ctx = FactContext::from_value(norm_val);
-        engine
-            .evaluate(&ctx)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        let kb_guard = state.kb.read().await;
+        let mark_guard = *state.pass_mark.read().await;
+        (kb_guard.clone(), mark_guard)
     };
+
+    let report: AuditReport = evaluate_facts(&kb, &facts, pass_mark)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     let latency = start.elapsed().as_secs_f64() * 1_000_000.0;
     let eligible = report.is_eligible();
@@ -178,12 +184,21 @@ async fn batch_evaluate(
 ) -> Result<Json<BatchResponseDto>, (StatusCode, String)> {
     let start = Instant::now();
 
-    let engine_guard = state.engine.read().await;
+    let (kb, pass_mark) = if let Some(path) = &payload.rules_path {
+        load_knowledge_base_from_path(path)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
+    } else {
+        let kb_guard = state.kb.read().await;
+        let mark_guard = *state.pass_mark.read().await;
+        (kb_guard.clone(), mark_guard)
+    };
+
     let mut candidate_results = Vec::new();
 
     for (idx, app_val) in payload.applicants.into_iter().enumerate() {
-        let ctx = FactContext::from_value(app_val);
-        if let Ok(report) = engine_guard.evaluate(&ctx) {
+        let norm_val = normalize_fact_value(app_val);
+        let facts = json_to_facts(&norm_val);
+        if let Ok(report) = evaluate_facts(&kb, &facts, pass_mark) {
             let candidate_id = report
                 .applicant_id
                 .clone()
@@ -228,7 +243,7 @@ async fn batch_evaluate(
     let latency = start.elapsed().as_secs_f64() * 1_000_000.0;
 
     Ok(Json(BatchResponseDto {
-        ruleset_name: engine_guard.program().name.clone(),
+        ruleset_name: kb.name().to_string(),
         total_evaluated: candidates.len(),
         cutoff: payload.cutoff,
         candidates,
@@ -242,12 +257,19 @@ async fn simulate_whatif(
     Json(payload): Json<SimulateRequestDto>,
 ) -> Result<Json<SimulateResponseDto>, (StatusCode, String)> {
     let start = Instant::now();
-    let engine = state.engine.read().await;
+
+    let (kb, pass_mark) = if let Some(path) = &payload.rules_path {
+        load_knowledge_base_from_path(path)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?
+    } else {
+        let kb_guard = state.kb.read().await;
+        let mark_guard = *state.pass_mark.read().await;
+        (kb_guard.clone(), mark_guard)
+    };
 
     let base_val = normalize_fact_value(payload.applicant);
-    let base_ctx = FactContext::from_value(base_val.clone());
-    let base_report = engine
-        .evaluate(&base_ctx)
+    let base_facts = json_to_facts(&base_val);
+    let base_report = evaluate_facts(&kb, &base_facts, pass_mark)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let current_score = base_report.total_score;
     let target_cutoff = payload.target_cutoff;
@@ -259,7 +281,8 @@ async fn simulate_whatif(
     let mut pnp_val = base_val.clone();
     pnp_val["applicant"]["additional_factors"]["has_provincial_nomination"] =
         serde_json::Value::Bool(true);
-    if let Ok(pnp_rep) = engine.evaluate(&FactContext::from_value(pnp_val)) {
+    let pnp_facts = json_to_facts(&pnp_val);
+    if let Ok(pnp_rep) = evaluate_facts(&kb, &pnp_facts, pass_mark) {
         let gain = pnp_rep.total_score - current_score;
         if gain > 0.0 {
             pathways.push(PathwayOptionDto {
@@ -278,7 +301,8 @@ async fn simulate_whatif(
     lang_val["applicant"]["language"]["first_official"]["clb_writing"] = serde_json::json!(9);
     lang_val["applicant"]["language"]["first_official"]["clb_listening"] = serde_json::json!(9);
     lang_val["applicant"]["language"]["first_official"]["clb_speaking"] = serde_json::json!(9);
-    if let Ok(lang_rep) = engine.evaluate(&FactContext::from_value(lang_val)) {
+    let lang_facts = json_to_facts(&lang_val);
+    if let Ok(lang_rep) = evaluate_facts(&kb, &lang_facts, pass_mark) {
         let gain = lang_rep.total_score - current_score;
         if gain > 0.0 {
             pathways.push(PathwayOptionDto {
@@ -297,7 +321,8 @@ async fn simulate_whatif(
         .as_i64()
         .unwrap_or(0);
     work_val["applicant"]["work_experience"]["domestic_years"] = serde_json::json!(curr_work + 1);
-    if let Ok(work_rep) = engine.evaluate(&FactContext::from_value(work_val)) {
+    let work_facts = json_to_facts(&work_val);
+    if let Ok(work_rep) = evaluate_facts(&kb, &work_facts, pass_mark) {
         let gain = work_rep.total_score - current_score;
         if gain > 0.0 {
             pathways.push(PathwayOptionDto {
@@ -319,14 +344,15 @@ async fn simulate_whatif(
     let mut sib_val = base_val.clone();
     sib_val["applicant"]["additional_factors"]["has_sibling_in_canada"] =
         serde_json::Value::Bool(true);
-    if let Ok(sib_rep) = engine.evaluate(&FactContext::from_value(sib_val)) {
+    let sib_facts = json_to_facts(&sib_val);
+    if let Ok(sib_rep) = evaluate_facts(&kb, &sib_facts, pass_mark) {
         let gain = sib_rep.total_score - current_score;
         if gain > 0.0 {
             pathways.push(PathwayOptionDto {
                 title: "Claim Canadian Citizen / Permanent Resident Sibling Bonus".to_string(),
                 points_gain: gain,
                 projected_total: sib_rep.total_score,
-                description: "Provides an instant 15-point direct regulatory bonus.".to_string(),
+                description: "Provides an instant direct regulatory bonus.".to_string(),
                 qualifies_for_draw: sib_rep.total_score >= target_cutoff,
             });
         }

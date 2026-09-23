@@ -1,7 +1,7 @@
 use colored::Colorize;
 use reqwest::Client;
 use rust_rules_engine::{
-    AppState, EvaluateApiResponse, RuleProgram, SimulateApiResponse, create_rest_router,
+    AppState, EvaluateApiResponse, SimulateApiResponse, create_rest_router,
 };
 use std::fs;
 use std::time::Instant;
@@ -10,15 +10,14 @@ use std::time::Instant;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "\n{}",
-        " 🚀 REST PROTOCOL REAL-TIME CLIENT DEMO 🚀 "
+        " 🚀 REST PROTOCOL REAL-TIME CLIENT DEMO (Powered by KSD-CO/rust-rule-engine) 🚀 "
             .bold()
             .on_cyan()
             .black()
     );
 
     // 1. Launch embedded local REST microservice for deterministic self-contained demo
-    let program = RuleProgram::from_path("rules/canada_crs/")?;
-    let state = AppState::new(program);
+    let state = AppState::from_path("rules/canada_crs_express_entry.grl")?;
     let app = create_rest_router(state);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
@@ -70,8 +69,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         eval_res.applicant_id.unwrap_or_default().yellow()
     );
     println!(
-        "   • Total Score:        {:.1} points",
-        eval_res.total_score.to_string().cyan().bold()
+        "   • Total Score:        {} points",
+        format!("{:.1}", eval_res.total_score).cyan().bold()
     );
     println!(
         "   • Eligibility:        {}",

@@ -1,48 +1,41 @@
 use colored::Colorize;
-use rust_rules_engine::{Engine, FactContext, RuleProgram};
+use rust_rules_engine::{
+    Facts, RuleEngineBuilder, Value, evaluate_facts, json_to_facts, load_knowledge_base_from_path,
+};
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "\n{}",
-        " 🔄 MULTI-FORMAT RULE INGESTION & DSL DEMO (YAML, JSON, GRL) 🔄 "
+        " 🔄 MULTI-FORMAT RULE INGESTION & DSL DEMO (GRL, JSON, YAML via KSD-CO/rust-rule-engine) 🔄 "
             .bold()
             .on_cyan()
             .black()
     );
     println!(
-        " Demonstrates loading and evaluating rules seamlessly across YAML, JSON, and GRL formats.\n"
+        " Demonstrates loading GRL specifications and evaluating applicant facts formatted as YAML and JSON.\n"
     );
 
     // =========================================================================
-    // 1. EVALUATION VIA YAML RULE PROGRAM
+    // 1. EVALUATION VIA GRL RULE FILE WITH YAML APPLICANT
     // =========================================================================
     println!(
         "{}",
-        "1️⃣  Evaluating via YAML Rules (rules/uk_skilled_worker_points.yaml)..."
+        "1️⃣  Evaluating GRL Rules with YAML Applicant Data..."
             .bold()
             .underline()
     );
-    let program_yaml = RuleProgram::from_yaml_file("rules/uk_skilled_worker_points.yaml")?;
-    let engine_yaml = Engine::new(program_yaml);
+    let (kb, pass_mark) = load_knowledge_base_from_path("rules/uk_skilled_worker_points.grl")?;
 
-    // Ingest YAML applicant
     let app_yaml_content = fs::read_to_string("applicants/tc05_uk_competing_tradeable.yaml")?;
     let app_val_from_yaml: serde_json::Value = serde_yaml::from_str(&app_yaml_content)?;
-    let ctx_yaml = FactContext::from_value(app_val_from_yaml);
+    let facts_yaml = json_to_facts(&app_val_from_yaml);
 
-    let report_yaml = engine_yaml.evaluate(&ctx_yaml)?;
+    let report_yaml = evaluate_facts(&kb, &facts_yaml, pass_mark)?;
+    println!("   • Knowledge Base: {}", kb.name().cyan());
+    println!("   • Applicant Source: applicants/tc05_uk_competing_tradeable.yaml (YAML)");
     println!(
-        "   • Rule Set Loaded: {} (v{})",
-        engine_yaml.program().name.cyan(),
-        engine_yaml.program().version
-    );
-    println!(
-        "   • Applicant Evaluated from: {}",
-        "applicants/tc05_uk_competing_tradeable.yaml".yellow()
-    );
-    println!(
-        "   • Result: Total Score = {:.1} / 70 (Status: {})\n",
+        "   • Result: Total Score = {:.1} (Status: {})\n",
         report_yaml.total_score,
         if report_yaml.is_eligible() {
             "Eligible".green()
@@ -52,33 +45,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // =========================================================================
-    // 2. EVALUATION VIA JSON RULE PROGRAM
+    // 2. EVALUATION VIA GRL RULE FILE WITH JSON APPLICANT
     // =========================================================================
     println!(
         "{}",
-        "2️⃣  Evaluating via JSON Rules (rules/uk_skilled_worker_points.json)..."
+        "2️⃣  Evaluating GRL Rules with JSON Applicant Data..."
             .bold()
             .underline()
     );
-    let json_content = fs::read_to_string("rules/uk_skilled_worker_points.json")?;
-    let program_json = RuleProgram::from_json_str(&json_content)?;
-    let engine_json = Engine::new(program_json);
+    let (kb_crs, pass_mark_crs) = load_knowledge_base_from_path("rules/canada_crs_express_entry.grl")?;
 
-    // Ingest JSON applicant
     let app_json_content = fs::read_to_string("applicants/tc01_tech_lead_single.json")?;
     let app_val_from_json: serde_json::Value = serde_json::from_str(&app_json_content)?;
-    let ctx_json = FactContext::from_value(app_val_from_json);
+    let facts_json = json_to_facts(&app_val_from_json);
 
-    let report_json = engine_json.evaluate(&ctx_json)?;
-    println!(
-        "   • Rule Set Loaded: {} (v{})",
-        engine_json.program().name.cyan(),
-        engine_json.program().version
-    );
-    println!(
-        "   • Applicant Evaluated from: {}",
-        "applicants/tc01_tech_lead_single.json".yellow()
-    );
+    let report_json = evaluate_facts(&kb_crs, &facts_json, pass_mark_crs)?;
+    println!("   • Knowledge Base: {}", kb_crs.name().cyan());
+    println!("   • Applicant Source: applicants/tc01_tech_lead_single.json (JSON)");
     println!(
         "   • Result: Total Score = {:.1} (Status: {})\n",
         report_json.total_score,
@@ -90,41 +73,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // =========================================================================
-    // 3. GRL (GRULE RULE LANGUAGE) DSL PARITY PREVIEW
+    // 3. EVALUATION VIA INLINE GRL USING RuleEngineBuilder
     // =========================================================================
     println!(
         "{}",
-        "3️⃣  GRL (Grule Rule Language) Script Representation..."
+        "3️⃣  Evaluating Inline GRL via RuleEngineBuilder..."
             .bold()
             .underline()
     );
-    let grl_sample = fs::read_to_string("rules/uk_skilled_worker_points.grl")?;
-    let grl_lines: Vec<&str> = grl_sample.lines().take(22).collect();
+    let inline_grl = r#"
+        rule "ExpeditedTechVisa" salience 100 {
+            when
+                applicant.skills.years_experience >= 5 &&
+                applicant.skills.is_tech == true
+            then
+                applicant.fast_track = true;
+                applicant.priority_tier = "Tier1";
+        }
+    "#;
 
+    let mut engine = RuleEngineBuilder::new()
+        .with_inline_grl(inline_grl)?
+        .build();
+
+    let facts = Facts::new();
+    let applicant_data = serde_json::json!({
+        "skills": {
+            "years_experience": 8,
+            "is_tech": true
+        }
+    });
+    facts.add_value("applicant", Value::from(applicant_data))?;
+
+    let result = engine.execute(&facts)?;
+    println!("   • Inline GRL rules evaluated: {}", result.rules_evaluated);
+    println!("   • Rules fired: {}", result.rules_fired);
     println!(
-        "   Preview of '{}':",
-        "rules/uk_skilled_worker_points.grl".yellow()
+        "   • Inferred applicant.fast_track: {:?}",
+        facts.get_nested("applicant.fast_track")
     );
     println!(
-        "{}",
-        "┌──────────────────────────────────────────────────────────────────────────┐".dimmed()
-    );
-    for line in grl_lines {
-        println!("│ {:<72} │", line.dimmed());
-    }
-    println!(
-        "│ {:<72} │",
-        "... [remaining rules defined in file] ...".italic()
-    );
-    println!(
-        "{}\n",
-        "└──────────────────────────────────────────────────────────────────────────┘".dimmed()
+        "   • Inferred applicant.priority_tier: {:?}\n",
+        facts.get_nested("applicant.priority_tier")
     );
 
-    println!("════════════════════════════════════════════════════════════════════════════");
-    println!(" 🚀 Summary: In Rust, Serde enables 100% interoperability between YAML (on-disk),");
-    println!("    JSON (REST APIs), and GRL DSL scripts compiling to the same unified AST.");
-    println!("════════════════════════════════════════════════════════════════════════════\n");
-
+    println!("{}", "✅ Multi-Format Rule Ingestion Verification Complete!".green().bold());
     Ok(())
 }

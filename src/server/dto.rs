@@ -3,7 +3,7 @@
 //! This module explicitly separates all network data models used across
 //! REST and gRPC API boundaries from internal engine AST structs.
 
-use crate::core::{CategoryConfig, CategoryScoreBreakdown, FiredRuleRecord};
+use crate::evaluator::{CategoryConfig, CategoryScoreBreakdown, FiredRuleRecord};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

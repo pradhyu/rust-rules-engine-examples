@@ -1,19 +1,18 @@
-use rust_rules_engine::{Engine, FactContext, RuleProgram};
+use rust_rules_engine::{evaluate_facts, json_to_facts, load_knowledge_base_from_path};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("⚡ Drools-Equivalent Forward Chaining & Inference Demo ⚡\n");
+    println!("⚡ Drools-Equivalent Forward Chaining & Inference Demo (via KSD-CO/rust-rule-engine) ⚡\n");
 
-    // 1. Load the edge cases rule suite
-    let program = RuleProgram::from_yaml_file("rules/edge_cases_drools_parity_suite.yaml")?;
-    let engine = Engine::new(program);
+    // 1. Load the GRL parity rule suite
+    let (kb, pass_mark) = load_knowledge_base_from_path("rules/drools_parity_suite.grl")?;
 
     // 2. Load candidate testing forward chaining
     let app_content = std::fs::read_to_string("applicants/tc11_forward_chaining.yaml")?;
     let app_val: serde_json::Value = serde_yaml::from_str(&app_content)?;
-    let context = FactContext::from_value(app_val);
+    let facts = json_to_facts(&app_val);
 
-    // 3. Evaluate: Phase 1 derives high language proficiency, Phase 3 fires downstream rule
-    let report = engine.evaluate(&context)?;
+    // 3. Evaluate: Phase 1 derives facts, downstream rules fire in subsequent cycles
+    let report = evaluate_facts(&kb, &facts, pass_mark)?;
 
     println!("Candidate ID: {:?}", report.applicant_id);
     println!("Inferred Tags: {:?}", report.tags);
