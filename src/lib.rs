@@ -1,7 +1,6 @@
 #![allow(clippy::result_large_err)]
 
 pub mod evaluator;
-pub mod immigration;
 pub mod repl;
 pub mod server;
 
@@ -15,12 +14,6 @@ pub use rust_rule_engine::{
 pub use evaluator::{
     AuditReport, CategoryConfig, CategoryScoreBreakdown, FiredRuleRecord, evaluate_facts,
     json_to_facts, load_knowledge_base_from_path,
-};
-
-pub use immigration::{
-    AdditionalFactors, ApplicantFactWrapper, ApplicantProfile, EducationCredential,
-    EmployerSponsor, JobOffer, LanguageAbilityScore, LanguageProficiency, SpouseProfile,
-    WorkExperience,
 };
 
 pub use repl::{LoadedRuleset, run_interactive_repl};

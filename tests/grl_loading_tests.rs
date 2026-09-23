@@ -57,3 +57,12 @@ fn test_load_drools_parity_suite_grl() {
 
     assert!(kb.rule_count() > 0);
 }
+
+#[test]
+fn test_load_drools_globals_and_services_grl() {
+    let (kb, _) = load_knowledge_base_from_path("rules/drools_globals_and_services.grl")
+        .expect("Failed to load and parse drools_globals_and_services.grl");
+
+    assert_eq!(kb.name(), "drools_globals_and_services");
+    assert_eq!(kb.rule_count(), 3);
+}

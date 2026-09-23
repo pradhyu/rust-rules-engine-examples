@@ -193,25 +193,22 @@ cargo test --test drools_parity_edge_cases
 Run standalone examples and protocol benchmarks:
 
 ```bash
-# 1. Multi-Protocol REST vs gRPC Real-Time Benchmark (1,000 requests)
+# 1. Drools Global Variables & Global Services Demo (Action Handlers, RulePlugin, GlobalsRegistry)
+cargo run --example drools_globals_and_services
+
+# 2. Multi-Protocol REST vs gRPC Real-Time Benchmark (1,000 requests)
 cargo run --example protocol_benchmark_client
 
-# 2. Real-Time REST JSON Client Demo
+# 3. Real-Time REST JSON Client Demo
 cargo run --example realtime_rest_client
 
-# 3. Real-Time gRPC Protobuf Client Demo
+# 4. Real-Time gRPC Protobuf Client Demo
 cargo run --example realtime_grpc_client
 
-# 4. Multi-Format Ingestion (YAML, JSON, GRL) & Parity Demo
-cargo run --example rule_formats_demo
-
-# 5. Global Travel Intelligence Demo (1000+ History Records & 4-Layer Inferencing)
-cargo run --example travel_intelligence_demo
-
-# 6. Real-Time Candidate Advisor & What-If Pathway Simulations
+# 5. Real-Time Candidate Advisor & What-If Pathway Simulations
 cargo run --example realtime_advisor_demo
 
-# 7. Working Memory Mutation & Forward Chaining Demo
+# 6. Working Memory Mutation & Forward Chaining Demo
 cargo run --example drools_inference_demo
 ```
 
@@ -296,35 +293,37 @@ rust-rules-engine-examples/
 │   │   ├── grpc.rs           # Tonic HTTP/2 gRPC Service Implementation
 │   │   └── mod.rs
 │   ├── repl.rs               # PLATFORM: Interactive Terminal REPL Shell (via KSD-CO/rust-rule-engine)
-│   ├── immigration/          # DOMAIN: Reference Merit-Based Immigration Models
-│   │   ├── models.rs         # Strongly Typed Domain Fact Structs
-│   │   └── mod.rs
 │   ├── lib.rs                # Library Root Export (re-exports KSD-CO/rust-rule-engine)
 │   └── main.rs               # CLI Tool (evaluate, batch, inspect, repl, serve)
-├── rules/                    # Declarative YAML / JSON / GRL Rule Programs
-│   ├── canada_crs/           # Modular Rule Folder (Config, Core, Transferability, Bonus)
-│   ├── canada_crs_express_entry.yaml
-│   ├── canada_crs_express_entry.grl
-│   ├── uk_skilled_worker_points.yaml
-│   ├── uk_skilled_worker_points.json
-│   ├── uk_skilled_worker_points.grl
-│   ├── australia_subclass_189.yaml
-│   ├── drools_parity_suite.grl       # 1:1 GRL Specification for all 30+ Drools Features
-│   └── edge_cases_drools_parity_suite.yaml
+├── rules/                    # Declarative GRL Rule Programs (parsed by KSD-CO/rust-rule-engine)
+│   ├── canada_crs_express_entry.grl    # Canada Express Entry CRS Scoring & Skill Transferability
+│   ├── uk_skilled_worker_points.grl    # Statutory UK Skilled Worker Points with XOR Activation Groups
+│   ├── drools_globals_and_services.grl # Drools Global Variables & Global Services Demo Rules
+│   └── drools_parity_suite.grl         # 1:1 GRL Specification for Advanced Drools Features
 ├── applicants/               # Test Applicant Fact Profiles (YAML & JSON)
 │   ├── tc01_tech_lead_single.yaml
-│   └── tc01_tech_lead_single.json
+│   ├── tc01_tech_lead_single.json
+│   ├── tc04_uk_sponsor_unlicensed.yaml
+│   ├── tc05_uk_competing_tradeable.yaml
+│   └── tc14_uk_stem_phd_discounted.yaml
 ├── examples/                 # Programmatic Rust API & Protocol Client/Server Demos
-│   ├── protocol_benchmark_client.rs # REST vs gRPC Latency & Throughput Benchmark
-│   ├── realtime_rest_server.rs      # Standalone Axum REST Server
-│   ├── realtime_rest_client.rs      # REST Client (Evaluate, Batch, What-If)
-│   ├── realtime_grpc_server.rs      # Standalone Tonic gRPC Server
-│   ├── realtime_grpc_client.rs      # gRPC Client (Evaluate, Batch, What-If)
-│   ├── realtime_advisor_demo.rs     # Real-Time Candidate Advisor & What-If Simulations
-│   ├── rule_formats_demo.rs         # Multi-Format Ingestion (YAML, JSON, GRL)
-│   ├── drools_inference_demo.rs     # Working Memory Mutation & Forward Chaining
-│   └── canada_crs_demo.rs           # Programmatic Engine Pipeline Execution
-└── tests/                    # Drools Edge Case Verification Integration Tests
-    └── drools_parity_edge_cases.rs
+│   ├── drools_globals_and_services.rs        # Drools Global Services (Action Handlers, RulePlugin, GlobalsRegistry)
+│   ├── drools_inference_demo.rs              # Working Memory Mutation & Forward Chaining
+│   ├── protocol_benchmark_client.rs          # REST vs gRPC Latency & Throughput Benchmark
+│   ├── realtime_advisor_demo.rs              # Real-Time Candidate Advisor & What-If Simulations
+│   ├── realtime_grpc_client.rs               # gRPC Client (Evaluate, Batch, What-If)
+│   ├── realtime_grpc_server.rs               # Standalone Tonic gRPC Server
+│   ├── realtime_rest_client.rs               # REST Client (Evaluate, Batch, What-If)
+│   ├── realtime_rest_server.rs               # Standalone Axum REST Server
+│   ├── rust_rule_engine_quickstart.rs        # Quickstart: Builder & Facts
+│   ├── rust_rule_engine_uk_immigration.rs    # UK Skilled Worker Statutory Evaluation
+│   ├── rust_rule_engine_canada_crs.rs        # Canada CRS Forward Chaining & Inference
+│   ├── rust_rule_engine_rete.rs              # RETE-UL Incremental Pattern Matching Network
+│   ├── rust_rule_engine_backward_chaining.rs # Goal-Driven Backward Chaining Discovery
+│   └── rust_rule_engine_streaming.rs         # CEP Real-Time Sliding Time Windows
+└── tests/                    # Integration & Parity Verification Tests
+    ├── drools_parity_edge_cases.rs   # Edge case verification across regulatory policies
+    ├── grl_loading_tests.rs          # Verification of GRL parsing and execution
+    └── test_upstream_ksd_engine.rs   # Upstream engine parser and execution tests
 ```
 

@@ -1,9 +1,5 @@
 use colored::Colorize;
-use rust_rules_engine::{
-    AdditionalFactors, ApplicantProfile, EducationCredential,
-    LanguageAbilityScore, LanguageProficiency, WorkExperience,
-    evaluate_facts, json_to_facts, load_knowledge_base_from_path,
-};
+use rust_rules_engine::{evaluate_facts, json_to_facts, load_knowledge_base_from_path};
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,55 +19,49 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Knowledge Base initialized in: {:?}\n", load_start.elapsed());
 
     // 2. Baseline Applicant Profile (Candidate with moderate language score)
-    let baseline_profile = ApplicantProfile {
-        id: "CAN-APP-2026-8941".to_string(),
-        first_name: "Sophia".to_string(),
-        last_name: "Chen".to_string(),
-        age: 29,
-        marital_status: "single".to_string(),
-        education: EducationCredential {
-            highest_degree: "master".to_string(),
-            field_of_study: Some("Data Engineering".to_string()),
-            is_stem: true,
-            is_stem_research: false,
-            is_domestic_study: false,
-            domestic_study_years: None,
+    let baseline_profile = serde_json::json!({
+        "id": "CAN-APP-2026-8941",
+        "first_name": "Sophia",
+        "last_name": "Chen",
+        "age": 29,
+        "marital_status": "single",
+        "education": {
+            "highest_degree": "master",
+            "field_of_study": "Data Engineering",
+            "is_stem": true,
+            "is_stem_research": false,
+            "is_domestic_study": false
         },
-        language: LanguageProficiency {
-            first_official: Some(LanguageAbilityScore {
-                clb_reading: 7,
-                clb_writing: 7,
-                clb_listening: 7,
-                clb_speaking: 7,
-                test_type: Some("IELTS".to_string()),
-                composite_clb: Some(7.0),
-            }),
-            second_official: None,
-            cefr_level: Some("B2".to_string()),
-            english_tier: None,
-            test_date: Some("2025-11-15".to_string()),
-            test_age_days: Some(120),
+        "language": {
+            "first_official": {
+                "clb_reading": 7,
+                "clb_writing": 7,
+                "clb_listening": 7,
+                "clb_speaking": 7,
+                "test_type": "IELTS",
+                "composite_clb": 7.0
+            },
+            "cefr_level": "B2",
+            "test_date": "2025-11-15",
+            "test_age_days": 120
         },
-        work_experience: WorkExperience {
-            domestic_years: 1,
-            foreign_years: 3,
-            primary_noc_code: Some("21231".to_string()),
-            skill_level: Some("TEER 1".to_string()),
-            has_trade_certification: false,
+        "work_experience": {
+            "domestic_years": 1,
+            "foreign_years": 3,
+            "primary_noc_code": "21231",
+            "skill_level": "TEER 1",
+            "has_trade_certification": false
         },
-        job_offer: None,
-        spouse: None,
-        additional_factors: Some(AdditionalFactors {
-            provincial_nomination: false,
-            has_sibling_citizen_or_pr: false,
-            french_speaker_bonus_eligible: false,
-        }),
-    };
+        "additional_factors": {
+            "provincial_nomination": false,
+            "has_sibling_citizen_or_pr": false,
+            "french_speaker_bonus_eligible": false
+        }
+    });
 
     // 3. Real-time Baseline Evaluation
     let eval_start = Instant::now();
-    let baseline_facts =
-        json_to_facts(&serde_json::json!({ "applicant": &baseline_profile }));
+    let baseline_facts = json_to_facts(&serde_json::json!({ "applicant": &baseline_profile }));
     let baseline_report = evaluate_facts(&kb, &baseline_facts, pass_mark)?;
     let eval_duration = eval_start.elapsed();
 
@@ -81,13 +71,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("══════════════════════════════════════════════════════════════════════");
     println!(
         " 👤 CANDIDATE PROFILE: {} {}",
-        baseline_profile.first_name.bold(),
-        baseline_profile.last_name.bold()
+        baseline_profile["first_name"].as_str().unwrap().bold(),
+        baseline_profile["last_name"].as_str().unwrap().bold()
     );
     println!(
         "    ID: {} | Age: {} | Education: Master's Degree",
-        baseline_profile.id.cyan(),
-        baseline_profile.age
+        baseline_profile["id"].as_str().unwrap().cyan(),
+        baseline_profile["age"]
     );
     println!("    Experience: 1 yr Canadian + 3 yrs Foreign | Language: CLB 7");
     println!("──────────────────────────────────────────────────────────────────────");
@@ -134,13 +124,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Simulation A: Retake IELTS to achieve CLB 9+ in all 4 abilities
     {
         let mut sim_profile = baseline_profile.clone();
-        if let Some(ref mut lang) = sim_profile.language.first_official {
-            lang.clb_reading = 9;
-            lang.clb_writing = 9;
-            lang.clb_listening = 9;
-            lang.clb_speaking = 9;
-            lang.composite_clb = Some(9.0);
-        }
+        sim_profile["language"]["first_official"] = serde_json::json!({
+            "clb_reading": 9,
+            "clb_writing": 9,
+            "clb_listening": 9,
+            "clb_speaking": 9,
+            "test_type": "IELTS",
+            "composite_clb": 9.0
+        });
         let sim_facts = json_to_facts(&serde_json::json!({ "applicant": sim_profile }));
         let sim_report = evaluate_facts(&kb, &sim_facts, pass_mark)?;
         let gain = sim_report.total_score - baseline_score;
@@ -156,7 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Simulation B: Gain 1 additional year of Canadian Work Experience (Total 2 years)
     {
         let mut sim_profile = baseline_profile.clone();
-        sim_profile.work_experience.domestic_years = 2;
+        sim_profile["work_experience"]["domestic_years"] = serde_json::json!(2);
         let sim_facts = json_to_facts(&serde_json::json!({ "applicant": sim_profile }));
         let sim_report = evaluate_facts(&kb, &sim_facts, pass_mark)?;
         let gain = sim_report.total_score - baseline_score;
@@ -173,10 +164,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Simulation C: Sibling in Canada (Bonus Factor)
     {
         let mut sim_profile = baseline_profile.clone();
-        sim_profile.additional_factors = Some(AdditionalFactors {
-            provincial_nomination: false,
-            has_sibling_citizen_or_pr: true,
-            french_speaker_bonus_eligible: false,
+        sim_profile["additional_factors"] = serde_json::json!({
+            "provincial_nomination": false,
+            "has_sibling_citizen_or_pr": true,
+            "french_speaker_bonus_eligible": false
         });
         let sim_facts = json_to_facts(&serde_json::json!({ "applicant": sim_profile }));
         let sim_report = evaluate_facts(&kb, &sim_facts, pass_mark)?;
@@ -193,10 +184,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Simulation D: Apply for Provincial Nomination (PNP Tech Draw)
     {
         let mut sim_profile = baseline_profile.clone();
-        sim_profile.additional_factors = Some(AdditionalFactors {
-            provincial_nomination: true,
-            has_sibling_citizen_or_pr: false,
-            french_speaker_bonus_eligible: false,
+        sim_profile["additional_factors"] = serde_json::json!({
+            "provincial_nomination": true,
+            "has_sibling_citizen_or_pr": false,
+            "french_speaker_bonus_eligible": false
         });
         let sim_facts = json_to_facts(&serde_json::json!({ "applicant": sim_profile }));
         let sim_report = evaluate_facts(&kb, &sim_facts, pass_mark)?;

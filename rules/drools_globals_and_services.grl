@@ -1,0 +1,48 @@
+// ============================================================================
+// Drools-Equivalent Global Services & Global Variables Reference
+// ============================================================================
+// Demonstrates how Drools `global` variables and `global` services map to
+// native KSD-CO/rust-rule-engine constructs:
+//
+//   1. Global Services invoked via Action Handlers:
+//        Drools: auditService.logEvent(...)  -> GRL: RecordAudit(...)
+//        Drools: emailService.send(...)     -> GRL: SendNotification(...)
+//        Drools: alertService.sendAlert(...) -> GRL: SendAlert(...)
+//
+//   2. Global Configuration Variables in Working Memory:
+//        Drools: global Double vipMinSpend;  -> GRL: Global.vip_min_spend
+//        Drools: global Double discountRate; -> GRL: Global.vip_discount_rate
+//
+//   3. Global Service Functions in Expressions:
+//        Drools: taxService.calculate(...)   -> GRL: calculate_tax(...)
+// ============================================================================
+
+rule "VIPOrderPromotion" salience 100 no-loop {
+    when
+        Customer.tier == "VIP" && Order.total >= Global.vip_min_spend && Order.processed != true
+    then
+        RecordAudit("VIP_PROMOTION_APPLIED", Order.id, Order.total);
+        SendNotification(Customer.email, "VIP Discount Applied", "Your order qualifies for an exclusive VIP discount!");
+        Order.discount = Global.vip_discount_rate;
+        Order.processed = true;
+}
+
+rule "StandardLoyaltyBonus" salience 50 no-loop {
+    when
+        Customer.tier == "Standard" && Customer.loyalty_points >= Global.loyalty_redeem_threshold && Order.processed != true
+    then
+        RecordAudit("LOYALTY_REDEEMED", Order.id, 50.0);
+        SendNotification(Customer.email, "Loyalty Points Redeemed", "50 loyalty points were redeemed for your order.");
+        Order.discount = 0.05;
+        Order.processed = true;
+}
+
+rule "FraudRiskAlert" salience 200 no-loop {
+    when
+        Order.total > Global.fraud_review_limit && Order.flagged != true
+    then
+        SendAlert("SECURITY_OPS", "High-value transaction requires fraud review");
+        RecordAudit("FRAUD_REVIEW_TRIGGERED", Order.id, Order.total);
+        Order.flagged = true;
+        Order.status = "under_review";
+}
