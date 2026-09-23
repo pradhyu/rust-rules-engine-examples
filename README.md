@@ -158,6 +158,9 @@ cargo run --example canada_crs_demo
 
 # Working Memory Mutation & Forward Chaining Demo
 cargo run --example drools_inference_demo
+
+# Drools & DMN Decision Table Evaluation Demo (CSV Spreadsheet & Hit Policies)
+cargo run --example decision_table_demo
 ```
 
 ### Rust API Usage Example
@@ -217,7 +220,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | Collection Accumulators (`from accumulate`) | `Action::Accumulate` (`sum_fte_years`, `min`, `max`, `count`) |
 | Temporal Reasoning & CEP (Drools Fusion) | `Condition::Temporal` sliding lookback & expiry windows |
 | Universal & Existential Quantifiers | `forall`, `exists`, `not_exists`, `min_count` |
-| Decision Tables & DMN Matrix Scoring | `PointsFormula::MatrixLookup` & `PointsFormula::Lookup` |
+| Decision Tables & DMN Hit Policies | `DecisionTable` AST & Hit Policies (`First`, `Unique`, `CollectSum`, `CollectMax`, `CollectMin`, `CollectCount`, `Priority`, `Any`, `RuleOrder`) |
+| CSV / Spreadsheet Rule Ingestion | `DecisionTable::from_csv_str` with bracket/quote-aware expression parsing |
+| Modular Rule Composition (Folders) | `RuleProgram::from_directory` / `--rules <folder>` auto-merging |
 | 100% Explainability & Event Listeners | Built-in `AuditReport` with full execution DAG & condition traces |
 | Deterministic Latency | Native compiled Rust ($\le 50\,\mu\text{s}$, zero GC) |
 
@@ -233,26 +238,30 @@ rust-rules-engine-examples/
 │   └── DROOLS_PARITY_MATRIX.md # Exhaustive Drools Feature Parity Matrix
 ├── src/
 │   ├── core/                 # Core Engine, AST, Evaluator, Context, Audit
-│   │   ├── ast.rs            # Rule AST & Condition Nodes
+│   │   ├── ast.rs            # Rule AST, DecisionTable, HitPolicy & Condition Nodes
 │   │   ├── audit.rs          # Structured Audit & Table Formatter
 │   │   ├── context.rs        # FactContext & Path Traversal
 │   │   ├── error.rs          # Typed Error Handling
-│   │   ├── evaluator.rs      # Engine Pipeline & Formula Evaluator
+│   │   ├── evaluator.rs      # Engine Pipeline, Decision Table Evaluator & Formulas
 │   │   └── mod.rs
 │   ├── immigration/          # Merit-Based Immigration Domain Models
 │   │   ├── models.rs         # Strongly Typed Applicant Profiles
 │   │   └── mod.rs
 │   ├── lib.rs                # Library Root Export
 │   └── main.rs               # CLI Tool (evaluate, batch, inspect, test-suite)
-├── rules/                    # Declarative YAML/JSON Rule Programs
+├── rules/                    # Declarative YAML/JSON/CSV Rule Programs
+│   ├── canada_crs/           # Modular Rule Folder (Config, Enrichment, Core, Spouse, Transferability, Bonus)
 │   ├── canada_crs_express_entry.yaml
 │   ├── australia_subclass_189.yaml
 │   ├── uk_skilled_worker_points.yaml
-│   └── edge_cases_drools_parity_suite.yaml
+│   ├── edge_cases_drools_parity_suite.yaml
+│   └── sample_decision_table.csv  # Spreadsheet Decision Table Example
 ├── applicants/               # Test Applicant Fact Profiles (YAML)
 ├── examples/                 # Programmatic Rust API Usage Examples
 │   ├── canada_crs_demo.rs
-│   └── drools_inference_demo.rs
-└── tests/                    # Drools Edge Case Verification Integration Tests
+│   ├── drools_inference_demo.rs
+│   └── decision_table_demo.rs # Multi-Column Decision Table & Hit Policies Demo
+└── tests/                    # Drools Edge Case & Decision Table Integration Tests
     └── drools_parity_edge_cases.rs
 ```
+

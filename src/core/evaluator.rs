@@ -521,6 +521,80 @@ impl Engine {
                 let total = lookup_band(r) + lookup_band(w) + lookup_band(l) + lookup_band(s);
                 Ok(total)
             }
+            PointsFormula::DecisionTable(table) => self.evaluate_decision_table(ctx, table),
+        }
+    }
+
+    /// Evaluate a multi-column Decision Table with DMN / Drools Hit Policies
+    pub fn evaluate_decision_table(
+        &self,
+        ctx: &FactContext,
+        table: &crate::core::ast::DecisionTable,
+    ) -> Result<f64> {
+        use crate::core::ast::HitPolicy;
+        let mut matching_outputs: Vec<f64> = Vec::new();
+
+        for row in &table.rows {
+            let mut row_matches = true;
+            for (idx, input_spec) in table.inputs.iter().enumerate() {
+                if let Some(entry_pattern) = row.input_entries.get(idx) {
+                    let pattern = entry_pattern.trim();
+                    if pattern == "-" || pattern.is_empty() {
+                        continue; // wildcard
+                    }
+
+                    let actual_val = ctx.get_path(&input_spec.path).ok();
+                    if !match_decision_table_cell(actual_val, pattern) {
+                        row_matches = false;
+                        break;
+                    }
+                }
+            }
+
+            if row_matches {
+                let out_val = row
+                    .output_entries
+                    .first()
+                    .and_then(|v| v.as_f64().or_else(|| v.as_i64().map(|i| i as f64)))
+                    .unwrap_or(0.0);
+
+                matching_outputs.push(out_val);
+
+                if table.hit_policy == HitPolicy::First {
+                    return Ok(out_val);
+                }
+            }
+        }
+
+        match table.hit_policy {
+            HitPolicy::First => Ok(matching_outputs.first().copied().unwrap_or(0.0)),
+            HitPolicy::Unique => {
+                if matching_outputs.len() > 1 {
+                    return Err(EngineError::EvaluationError(
+                        "Decision table with Unique hit policy matched multiple rows".to_string(),
+                    ));
+                }
+                Ok(matching_outputs.first().copied().unwrap_or(0.0))
+            }
+            HitPolicy::CollectSum => Ok(matching_outputs.iter().sum()),
+            HitPolicy::CollectMax => {
+                if matching_outputs.is_empty() {
+                    Ok(0.0)
+                } else {
+                    Ok(matching_outputs.into_iter().fold(f64::NEG_INFINITY, f64::max))
+                }
+            }
+            HitPolicy::CollectMin => {
+                if matching_outputs.is_empty() {
+                    Ok(0.0)
+                } else {
+                    Ok(matching_outputs.into_iter().fold(f64::INFINITY, f64::min))
+                }
+            }
+            HitPolicy::CollectCount => Ok(matching_outputs.len() as f64),
+            HitPolicy::Priority | HitPolicy::Any | HitPolicy::RuleOrder => {
+                Ok(matching_outputs.first().copied().unwrap_or(0.0))
+            }
         }
     }
 
@@ -657,6 +731,119 @@ fn values_equal(a: &Value, b: &Value) -> bool {
     // Boolean comparison
     if let (Some(ba), Some(bb)) = (a.as_bool(), b.as_bool()) {
         return ba == bb;
+    }
+    false
+}
+
+fn match_decision_table_cell(actual_val: Option<&Value>, pattern: &str) -> bool {
+    let p = pattern.trim();
+    if p.is_empty() || p == "-" || p == "*" {
+        return true;
+    }
+
+    let actual = match actual_val {
+        Some(v) if !v.is_null() => v,
+        _ => return p.eq_ignore_ascii_case("null") || p.eq_ignore_ascii_case("none"),
+    };
+
+    // Range patterns: [min..max], [min, max], [min..max)
+    if (p.starts_with('[') || p.starts_with('(')) && (p.ends_with(']') || p.ends_with(')')) {
+        let inclusive_start = p.starts_with('[');
+        let inclusive_end = p.ends_with(']');
+        let inner = &p[1..p.len() - 1];
+        let parts: Vec<&str> = if inner.contains("..") {
+            inner.split("..").collect()
+        } else if inner.contains(',') {
+            inner.split(',').collect()
+        } else {
+            vec![]
+        };
+
+        if parts.len() == 2 {
+            if let (Ok(min), Ok(max)) = (parts[0].trim().parse::<f64>(), parts[1].trim().parse::<f64>()) {
+                if let Ok(act_num) = value_to_f64(actual) {
+                    let start_ok = if inclusive_start { act_num >= min } else { act_num > min };
+                    let end_ok = if inclusive_end { act_num <= max } else { act_num < max };
+                    return start_ok && end_ok;
+                }
+            }
+        }
+    }
+
+    // Comparison prefixes: >=, <=, >, <, !=, ==, =
+    if let Some(target_str) = p.strip_prefix(">=") {
+        if let (Ok(num), Ok(target)) = (value_to_f64(actual), target_str.trim().parse::<f64>()) {
+            return num >= target;
+        }
+    } else if let Some(target_str) = p.strip_prefix("<=") {
+        if let (Ok(num), Ok(target)) = (value_to_f64(actual), target_str.trim().parse::<f64>()) {
+            return num <= target;
+        }
+    } else if let Some(target_str) = p.strip_prefix('>') {
+        if let (Ok(num), Ok(target)) = (value_to_f64(actual), target_str.trim().parse::<f64>()) {
+            return num > target;
+        }
+    } else if let Some(target_str) = p.strip_prefix('<') {
+        if let (Ok(num), Ok(target)) = (value_to_f64(actual), target_str.trim().parse::<f64>()) {
+            return num < target;
+        }
+    } else if let Some(target_str) = p.strip_prefix("!=") {
+        let clean = target_str.trim().trim_matches('\'').trim_matches('"');
+        if let Some(act_str) = actual.as_str() {
+            return !act_str.eq_ignore_ascii_case(clean);
+        } else if let Ok(target_num) = clean.parse::<f64>() {
+            if let Ok(act_num) = value_to_f64(actual) {
+                return (act_num - target_num).abs() > f64::EPSILON;
+            }
+        }
+        return true;
+    } else if p.starts_with("==") || p.starts_with('=') {
+        let rest = if p.starts_with("==") { &p[2..] } else { &p[1..] };
+        let target_str = rest.trim().trim_matches('\'').trim_matches('"');
+        return match_exact(actual, target_str);
+    }
+
+    // In list: in ['a', 'b'], ['a', 'b']
+    let in_list_str = if p.to_lowercase().starts_with("in ") {
+        Some(p[3..].trim())
+    } else if p.starts_with('[') && p.ends_with(']') {
+        Some(p)
+    } else {
+        None
+    };
+
+    if let Some(list_expr) = in_list_str {
+        let trimmed_list = list_expr.trim_start_matches('[').trim_end_matches(']');
+        let items: Vec<&str> = trimmed_list
+            .split(',')
+            .map(|s| s.trim().trim_matches('\'').trim_matches('"'))
+            .collect();
+        for item in items {
+            if match_exact(actual, item) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Default exact / literal match
+    let clean_target = p.trim_matches('\'').trim_matches('"');
+    match_exact(actual, clean_target)
+}
+
+fn match_exact(actual: &Value, target: &str) -> bool {
+    if let Some(s) = actual.as_str() {
+        return s.eq_ignore_ascii_case(target);
+    }
+    if let Some(b) = actual.as_bool() {
+        if let Ok(tb) = target.parse::<bool>() {
+            return b == tb;
+        }
+    }
+    if let Ok(act_num) = value_to_f64(actual) {
+        if let Ok(target_num) = target.parse::<f64>() {
+            return (act_num - target_num).abs() < f64::EPSILON;
+        }
     }
     false
 }

@@ -108,6 +108,171 @@ pub enum PointsFormula {
         listening_path: String,
         speaking_path: String,
     },
+
+    /// Multi-Column Decision Table with DMN / Drools Hit Policies
+    DecisionTable(Box<DecisionTable>),
+}
+
+/// DMN & Drools-equivalent Hit Policies for Decision Tables
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum HitPolicy {
+    #[default]
+    First,       // First matching row returns output
+    Unique,      // Exactly one row must match
+    Priority,    // Highest priority row
+    Any,         // Multiple matching rows with identical output
+    CollectSum,  // Sum of all matching row outputs (C+)
+    CollectMin,  // Minimum of all matching row outputs (C<)
+    CollectMax,  // Maximum of all matching row outputs (C>)
+    CollectCount,// Count of matching rows (C#)
+    RuleOrder,   // Ordered list of all matching outputs
+}
+
+/// Input column specification for a Decision Table
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DecisionTableInput {
+    pub name: String,
+    pub path: String,
+}
+
+/// Output column specification for a Decision Table
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DecisionTableOutput {
+    pub name: String,
+    pub category: String,
+}
+
+/// A single row in a Decision Table
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DecisionTableRow {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Expressions for each input column (e.g. ">= 9", "in ['master', 'doctorate']", "-")
+    pub input_entries: Vec<String>,
+    /// Outputs for each output column (e.g. 50.0)
+    pub output_entries: Vec<Value>,
+}
+
+/// Multi-Column Decision Table Definition (Drools / DMN Standard)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DecisionTable {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub hit_policy: HitPolicy,
+    pub inputs: Vec<DecisionTableInput>,
+    pub outputs: Vec<DecisionTableOutput>,
+    pub rows: Vec<DecisionTableRow>,
+}
+
+fn split_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut in_bracket: usize = 0;
+    let mut in_paren: usize = 0;
+    let mut in_quote = false;
+    let mut quote_char = '"';
+
+    for c in line.chars() {
+        match c {
+            '"' | '\'' if !in_quote => {
+                in_quote = true;
+                quote_char = c;
+                current.push(c);
+            }
+            c if in_quote && c == quote_char => {
+                in_quote = false;
+                current.push(c);
+            }
+            '[' if !in_quote => {
+                in_bracket += 1;
+                current.push(c);
+            }
+            ']' if !in_quote => {
+                in_bracket = in_bracket.saturating_sub(1);
+                current.push(c);
+            }
+            '(' if !in_quote => {
+                in_paren += 1;
+                current.push(c);
+            }
+            ')' if !in_quote => {
+                in_paren = in_paren.saturating_sub(1);
+                current.push(c);
+            }
+            ',' if !in_quote && in_bracket == 0 && in_paren == 0 => {
+                fields.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => {
+                current.push(c);
+            }
+        }
+    }
+    fields.push(current.trim().to_string());
+    fields
+}
+
+impl DecisionTable {
+    /// Parse a DecisionTable from CSV string (Spreadsheet decision table)
+    pub fn from_csv_str(csv_str: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut lines = csv_str.lines().filter(|l| !l.trim().is_empty() && !l.trim().starts_with('#'));
+        
+        let header_line = lines.next().ok_or("CSV Decision Table missing header line")?;
+        let headers = split_csv_line(header_line);
+        
+        if headers.len() < 2 {
+            return Err("CSV Decision Table must have at least 1 input column and 1 output column".into());
+        }
+
+        let num_inputs = headers.len() - 2; // last 2 are output_pts and description
+        let mut inputs = Vec::new();
+        for h in &headers[0..num_inputs] {
+            inputs.push(DecisionTableInput {
+                name: h.to_string(),
+                path: h.to_string(),
+            });
+        }
+
+        let output_name = &headers[num_inputs];
+        let outputs = vec![DecisionTableOutput {
+            name: "points".to_string(),
+            category: output_name.to_string(),
+        }];
+
+        let mut rows = Vec::new();
+        for (idx, line) in lines.enumerate() {
+            let cells = split_csv_line(line);
+            if cells.len() >= headers.len() {
+                let input_entries: Vec<String> = cells[0..num_inputs].to_vec();
+                let out_val: f64 = cells[num_inputs].parse().unwrap_or(0.0);
+                let desc = if cells.len() > num_inputs + 1 {
+                    Some(cells[num_inputs + 1].clone())
+                } else {
+                    None
+                };
+
+                rows.push(DecisionTableRow {
+                    id: Some(format!("row_{}", idx + 1)),
+                    description: desc,
+                    input_entries,
+                    output_entries: vec![Value::from(out_val)],
+                });
+            }
+        }
+
+        Ok(DecisionTable {
+            id: "csv_decision_table".to_string(),
+            name: "CSV Decision Table".to_string(),
+            hit_policy: HitPolicy::CollectSum,
+            inputs,
+            outputs,
+            rows,
+        })
+    }
 }
 
 /// Action to execute when a rule's condition is satisfied

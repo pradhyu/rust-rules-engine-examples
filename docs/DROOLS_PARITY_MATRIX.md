@@ -102,12 +102,18 @@ This document provides a comprehensive mapping of **every feature in Red Hat Dro
 
 | # | Drools / DMN Feature | Drools Equivalent | Rust Rules Engine Alternative | Rust AST Model | Immigration Edge Case / Example | Test ID |
 |---|---|---|---|---|---|---|
-| **F1** | **2D / 3D Decision Matrix** | DMN Boxed Decision Table | `PointsFormula::MatrixLookup` | `type: "matrix_lookup", row_path: "education", col_path: "clb_level", matrix: {...}` | Skill Transferability Matrix (Education $\times$ Language Band) | `TC-01` |
-| **F2** | **Hit Policy: Unique (U)** | DMN Unique Hit Policy | Single-match Matrix or Activation Group | `hit_policy: "unique"` | Exactly one salary band match | `TC-05` |
-| **F3** | **Hit Policy: First (F)** | DMN First Hit Policy | Priority-ordered Activation Group | `hit_policy: "first"` | Highest qualification pathway chosen first | `TC-05` |
-| **F4** | **Hit Policy: Collect Sum (C+)** | DMN Collect Sum Hit Policy | Category Aggregation with Max Cap | `hit_policy: "collect_sum", max_cap: 100` | Summing multiple transferability sub-factors up to cap | `TC-03` |
-| **F5** | **Linear Scorecard with Clamps** | Drools PMML Scorecard | `PointsFormula::Scaled` with min/max clamps | `type: "scaled", path: "years", factor: 5.0, min: 0.0, max: 15.0` | Overseas work experience (5 pts/yr, max 15 pts) | `TC-01` |
-| **F6** | **Discrete Map Lookup** | Drools Simple Map Table | `PointsFormula::Lookup` | `type: "lookup", path: "education.degree", mapping: {"phd": 20, "master": 15}` | Degree hierarchy scoring table | `TC-01` |
+| **F1** | **Multi-Column Decision Table** | DMN Decision Table / Drools Decision Table | `DecisionTable` AST with typed inputs/outputs/rows | `DecisionTable { inputs: [...], outputs: [...], rows: [...] }` | Skill Transferability Matrix (Degree $\times$ Foreign Work $\times$ CLB) | `test_decision_table_hit_policies` |
+| **F2** | **CSV / Spreadsheet Decision Tables** | Drools `.xls` / `.csv` Decision Tables | `DecisionTable::from_csv_str` | CSV with header, intervals `[20..29]`, sets `in ['a','b']`, ops `>= 9` | Excel/CSV rule spreadsheets for policy officers | `test_decision_table_csv_spreadsheet_parsing` |
+| **F3** | **Hit Policy: Unique (U)** | DMN Unique (`U`) | `HitPolicy::Unique` | `hit_policy: HitPolicy::Unique` (errors if >1 row matches) | Exactly one discrete salary / tier bracket | `test_decision_table_hit_policies` |
+| **F4** | **Hit Policy: First (F)** | DMN First (`F`) | `HitPolicy::First` | `hit_policy: HitPolicy::First` (returns top matching row) | Highest qualification priority cascade | `test_decision_table_hit_policies` |
+| **F5** | **Hit Policy: Collect Sum (C+)** | DMN Collect Sum (`C+`) | `HitPolicy::CollectSum` | `hit_policy: HitPolicy::CollectSum` (sums all matching rows) | Aggregating multiple sub-factor points in table | `test_decision_table_hit_policies` |
+| **F6** | **Hit Policy: Collect Max (C>)** | DMN Collect Max (`C>`) | `HitPolicy::CollectMax` | `hit_policy: HitPolicy::CollectMax` | Best-case points across concurrent pathways | `test_decision_table_hit_policies` |
+| **F7** | **Hit Policy: Collect Min (C<)** | DMN Collect Min (`C<`) | `HitPolicy::CollectMin` | `hit_policy: HitPolicy::CollectMin` | Conservative scoring across concurrent pathways | `test_decision_table_hit_policies` |
+| **F8** | **Hit Policy: Collect Count (C#)**| DMN Collect Count (`C#`)| `HitPolicy::CollectCount` | `hit_policy: HitPolicy::CollectCount` | Counting qualifying criteria rows met | `test_decision_table_hit_policies` |
+| **F9** | **2D Matrix Lookup** | DMN Boxed Decision Matrix | `PointsFormula::MatrixLookup` | `type: "matrix_lookup", row_path: "education", col_path: "clb_level", matrix: {...}` | 2D matrix lookup (Education $\times$ Language Band) | `TC-01` |
+| **F10** | **Linear Scorecard with Clamps** | Drools PMML Scorecard | `PointsFormula::Scaled` with min/max clamps | `type: "scaled", path: "years", factor: 5.0, min: 0.0, max: 15.0` | Overseas work experience (5 pts/yr, max 15 pts) | `TC-01` |
+| **F11** | **Discrete Map Lookup** | Drools Simple Map Table | `PointsFormula::Lookup` | `type: "lookup", path: "education.degree", mapping: {"phd": 20, "master": 15}` | Degree hierarchy scoring table | `TC-01` |
+
 
 ---
 

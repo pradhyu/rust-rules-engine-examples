@@ -176,3 +176,191 @@ fn test_modular_directory_rule_loading() {
     assert!(report.is_eligible());
     assert!(report.total_score >= 580.0, "Score should match single file evaluation (got {})", report.total_score);
 }
+
+#[test]
+fn test_decision_table_hit_policies() {
+    use rust_rules_engine::{DecisionTable, DecisionTableInput, DecisionTableOutput, DecisionTableRow, HitPolicy};
+    use serde_json::json;
+
+    let mut ctx_val = serde_json::Map::new();
+    ctx_val.insert("age".to_string(), json!(28));
+    ctx_val.insert("education_level".to_string(), json!("master"));
+    ctx_val.insert("clb_score".to_string(), json!(9));
+    let ctx = FactContext::from_value(serde_json::Value::Object(ctx_val));
+
+    // Build a sample multi-column decision table:
+    // Inputs: age, education_level, clb_score
+    // Row 1: [20..29], master, >= 9  -> 50 pts
+    // Row 2: [20..29], -, >= 7       -> 25 pts
+    // Row 3: >= 30, -, -             -> 10 pts
+    let inputs = vec![
+        DecisionTableInput { name: "age".to_string(), path: "age".to_string() },
+        DecisionTableInput { name: "education".to_string(), path: "education_level".to_string() },
+        DecisionTableInput { name: "clb".to_string(), path: "clb_score".to_string() },
+    ];
+    let outputs = vec![DecisionTableOutput { name: "points".to_string(), category: "skills".to_string() }];
+    let rows = vec![
+        DecisionTableRow {
+            id: Some("r1".to_string()),
+            description: Some("Young Master CLB9".to_string()),
+            input_entries: vec!["[20..29]".to_string(), "in ['master', 'doctorate']".to_string(), ">= 9".to_string()],
+            output_entries: vec![json!(50.0)],
+        },
+        DecisionTableRow {
+            id: Some("r2".to_string()),
+            description: Some("Young Good CLB".to_string()),
+            input_entries: vec!["[20..29]".to_string(), "-".to_string(), ">= 7".to_string()],
+            output_entries: vec![json!(25.0)],
+        },
+        DecisionTableRow {
+            id: Some("r3".to_string()),
+            description: Some("Older candidate".to_string()),
+            input_entries: vec![">= 30".to_string(), "-".to_string(), "-".to_string()],
+            output_entries: vec![json!(10.0)],
+        },
+    ];
+
+    let engine = Engine::new(RuleProgram {
+        id: "dt_test".to_string(),
+        name: "Decision Table Test".to_string(),
+        version: "1.0.0".to_string(),
+        description: None,
+        categories: std::collections::HashMap::new(),
+        total_points_cap: None,
+        pass_mark_threshold: None,
+        rules: vec![],
+    });
+
+    // 1. CollectSum (both Row 1 and Row 2 match -> 50 + 25 = 75)
+    let mut dt_collect_sum = DecisionTable {
+        id: "dt_1".to_string(),
+        name: "Skills Table".to_string(),
+        hit_policy: HitPolicy::CollectSum,
+        inputs: inputs.clone(),
+        outputs: outputs.clone(),
+        rows: rows.clone(),
+    };
+    let score_sum = engine.evaluate_decision_table(&ctx, &dt_collect_sum).expect("CollectSum failed");
+    assert_eq!(score_sum, 75.0, "CollectSum should sum matched rows 50 + 25 = 75");
+
+    // 2. First (first matching row is Row 1 -> 50)
+    dt_collect_sum.hit_policy = HitPolicy::First;
+    let score_first = engine.evaluate_decision_table(&ctx, &dt_collect_sum).expect("First failed");
+    assert_eq!(score_first, 50.0, "First hit policy should return first matching row (50)");
+
+    // 3. CollectMax (max between 50 and 25 is 50)
+    dt_collect_sum.hit_policy = HitPolicy::CollectMax;
+    let score_max = engine.evaluate_decision_table(&ctx, &dt_collect_sum).expect("CollectMax failed");
+    assert_eq!(score_max, 50.0);
+
+    // 4. CollectMin (min between 50 and 25 is 25)
+    dt_collect_sum.hit_policy = HitPolicy::CollectMin;
+    let score_min = engine.evaluate_decision_table(&ctx, &dt_collect_sum).expect("CollectMin failed");
+    assert_eq!(score_min, 25.0);
+
+    // 5. CollectCount (2 rows matched)
+    dt_collect_sum.hit_policy = HitPolicy::CollectCount;
+    let score_count = engine.evaluate_decision_table(&ctx, &dt_collect_sum).expect("CollectCount failed");
+    assert_eq!(score_count, 2.0);
+
+    // 6. Unique hit policy with multiple matches must return an error
+    dt_collect_sum.hit_policy = HitPolicy::Unique;
+    assert!(engine.evaluate_decision_table(&ctx, &dt_collect_sum).is_err(), "Unique must fail on multiple matches");
+}
+
+#[test]
+fn test_decision_table_csv_spreadsheet_parsing() {
+    use rust_rules_engine::DecisionTable;
+    use serde_json::json;
+
+    let csv_content = r#"
+# Drools / DMN Spreadsheet Decision Table Example
+age, education_level, points, description
+[18..35], master, 50, Prime age with Masters
+[18..35], bachelor, 30, Prime age with Bachelors
+>= 36, master, 35, Mid career Masters
+>= 36, bachelor, 20, Mid career Bachelors
+"#;
+
+    let dt = DecisionTable::from_csv_str(csv_content).expect("Failed to parse CSV Decision Table");
+    assert_eq!(dt.inputs.len(), 2);
+    assert_eq!(dt.rows.len(), 4);
+
+    let mut ctx_val = serde_json::Map::new();
+    ctx_val.insert("age".to_string(), json!(29));
+    ctx_val.insert("education_level".to_string(), json!("master"));
+    let ctx = FactContext::from_value(serde_json::Value::Object(ctx_val));
+
+    let engine = Engine::new(RuleProgram {
+        id: "csv_test".to_string(),
+        name: "CSV Decision Table Test".to_string(),
+        version: "1.0.0".to_string(),
+        description: None,
+        categories: std::collections::HashMap::new(),
+        total_points_cap: None,
+        pass_mark_threshold: None,
+        rules: vec![],
+    });
+
+    let score = engine.evaluate_decision_table(&ctx, &dt).expect("CSV evaluation failed");
+    assert_eq!(score, 50.0, "Prime age Master should match 50 points");
+}
+
+#[test]
+fn test_decision_table_integration_in_rule_program() {
+    use rust_rules_engine::{Action, Condition, DecisionTable, HitPolicy, PointsFormula, Rule};
+    use serde_json::json;
+
+    let csv_content = r#"
+canadian_work_years, foreign_work_years, points, description
+>= 2, >= 3, 50, High Canadian and Foreign Experience
+>= 1, >= 1, 25, Moderate Experience
+"#;
+
+    let dt = DecisionTable::from_csv_str(csv_content).expect("Failed to parse CSV");
+    let mut dt_rule = dt;
+    dt_rule.hit_policy = HitPolicy::First;
+
+    let rule = Rule {
+        id: "dt_rule_experience".to_string(),
+        name: "Experience Decision Matrix".to_string(),
+        description: Some("Award points via Decision Table".to_string()),
+        phase: "scoring".to_string(),
+        category: "skill_transferability".to_string(),
+        priority: 100,
+        activation_group: None,
+        no_loop: false,
+        is_eligibility_gate: false,
+        enabled: true,
+        condition: Condition::Always,
+        actions: vec![Action::AwardPoints {
+            category: "skill_transferability".to_string(),
+            formula: PointsFormula::DecisionTable(Box::new(dt_rule)),
+            reason: "Evaluated via Decision Table".to_string(),
+        }],
+    };
+
+    let program = RuleProgram {
+        id: "dt_program".to_string(),
+        name: "Decision Table Program".to_string(),
+        version: "1.0.0".to_string(),
+        description: None,
+        categories: std::collections::HashMap::new(),
+        total_points_cap: None,
+        pass_mark_threshold: None,
+        rules: vec![rule],
+    };
+
+    let mut ctx_val = serde_json::Map::new();
+    ctx_val.insert("canadian_work_years".to_string(), json!(3));
+    ctx_val.insert("foreign_work_years".to_string(), json!(4));
+    let ctx = FactContext::from_value(serde_json::Value::Object(ctx_val));
+
+    let engine = Engine::new(program);
+    let report = engine.evaluate(&ctx).expect("Rule Program with Decision Table failed");
+
+    assert_eq!(report.total_score, 50.0);
+    assert_eq!(report.fired_rules.len(), 1);
+    assert_eq!(report.fired_rules[0].points_awarded, 50.0);
+}
+

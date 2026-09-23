@@ -1,0 +1,10 @@
+# Express Entry Skill Transferability Matrix (Drools Decision Table CSV Format)
+# Inputs: applicant.education.highest_degree, applicant.work_experience.foreign_years, applicant.language.first_official.clb_reading
+# Output: points (skill_transferability)
+applicant.education.highest_degree, applicant.work_experience.foreign_years, applicant.language.first_official.clb_reading, points, description
+in ['master', 'doctorate'], >= 3, >= 9, 50, Master/PhD + 3+ yrs Foreign Work + CLB 9
+in ['master', 'doctorate'], >= 1, >= 9, 25, Master/PhD + 1-2 yrs Foreign Work + CLB 9
+in ['master', 'doctorate'], >= 3, [7..8], 25, Master/PhD + 3+ yrs Foreign Work + CLB 7/8
+in ['bachelor', 'two_or_more_degrees'], >= 3, >= 9, 25, Bachelor + 3+ yrs Foreign Work + CLB 9
+in ['bachelor', 'two_or_more_degrees'], >= 1, [7..8], 13, Bachelor + 1-2 yrs Foreign Work + CLB 7/8
+-, -, -, 0, Default baseline fallback
