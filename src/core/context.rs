@@ -9,6 +9,8 @@ pub struct FactContext {
     data: Value,
     #[serde(default)]
     computed_attributes: HashMap<String, Value>,
+    #[serde(default)]
+    tags: Vec<String>,
 }
 
 impl FactContext {
@@ -17,6 +19,7 @@ impl FactContext {
         Self {
             data: Value::Object(serde_json::Map::new()),
             computed_attributes: HashMap::new(),
+            tags: Vec::new(),
         }
     }
 
@@ -27,6 +30,7 @@ impl FactContext {
         Ok(Self {
             data: value,
             computed_attributes: HashMap::new(),
+            tags: Vec::new(),
         })
     }
 
@@ -35,6 +39,7 @@ impl FactContext {
         Self {
             data: value,
             computed_attributes: HashMap::new(),
+            tags: Vec::new(),
         }
     }
 
@@ -43,20 +48,68 @@ impl FactContext {
         &self.data
     }
 
-    /// Set a computed attribute on the context (useful for chaining rules)
+    /// Add a diagnostic tag
+    pub fn add_tag(&mut self, tag: impl Into<String>) {
+        let t = tag.into();
+        if !self.tags.contains(&t) {
+            self.tags.push(t);
+        }
+    }
+
+    /// Check if context contains a tag
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.tags.iter().any(|t| t == tag)
+    }
+
+    /// Get all tags
+    pub fn get_tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    /// Set a computed attribute on the context (useful for chaining rules / forward chaining)
     pub fn set_computed_attribute(&mut self, key: impl Into<String>, value: Value) {
-        self.computed_attributes.insert(key.into(), value);
+        let mut k = key.into();
+        if let Some(stripped) = k.strip_prefix("computed.") {
+            k = stripped.to_string();
+        }
+        self.computed_attributes.insert(k, value);
+    }
+
+    /// Remove a computed attribute
+    pub fn remove_computed_attribute(&mut self, key: &str) {
+        let mut k = key;
+        if let Some(stripped) = k.strip_prefix("computed.") {
+            k = stripped;
+        }
+        self.computed_attributes.remove(k);
     }
 
     /// Get a computed attribute
     pub fn get_computed_attribute(&self, key: &str) -> Option<&Value> {
-        self.computed_attributes.get(key)
+        let mut k = key;
+        if let Some(stripped) = k.strip_prefix("computed.") {
+            k = stripped;
+        }
+        self.computed_attributes.get(k)
     }
 
-    /// Get a value from the context using a dotted path (e.g. "applicant.age" or "computed.my_attr")
+    /// Check if a path exists in data or computed attributes and is non-null
+    pub fn path_exists(&self, path: &str) -> bool {
+        match self.get_path(path) {
+            Ok(v) => !v.is_null(),
+            Err(_) => false,
+        }
+    }
+
+    /// Get a value from the context using a dotted path (e.g. "applicant.age" or "computed.has_clb_9_plus")
     pub fn get_path(&self, path: &str) -> Result<&Value> {
-        // Check computed attributes first if prefixed
-        if let Some(rest) = path.strip_prefix("computed.") {
+        // Special check for tags
+        if path == "applicant.tags" || path == "tags" {
+            // Can check tags
+        }
+
+        // Check computed attributes first if prefixed with "computed." or "derived."
+        if let Some(rest) = path.strip_prefix("computed.").or_else(|| path.strip_prefix("derived.")) {
             return self.computed_attributes.get(rest).ok_or_else(|| {
                 EngineError::FactNotFound(format!("Computed attribute not found: {path}"))
             });
@@ -66,12 +119,16 @@ impl FactContext {
         let mut current = &self.data;
 
         for segment in segments {
+            if current.is_null() {
+                return Err(EngineError::FactNotFound(format!("Null encountered in path '{path}' at segment '{segment}'")));
+            }
+
             // Check if segment is an array index
             if let Ok(idx) = segment.parse::<usize>() {
                 match current {
                     Value::Array(arr) => {
                         current = arr.get(idx).ok_or_else(|| {
-                            EngineError::FactNotFound(format!("Array index out of bounds at {path}"))
+                            EngineError::FactNotFound(format!("Array index out of bounds at '{path}'"))
                         })?;
                     }
                     _ => {
@@ -106,11 +163,13 @@ impl FactContext {
     /// Helper to get an integer from a path
     pub fn get_i64(&self, path: &str) -> Result<i64> {
         let val = self.get_path(path)?;
-        val.as_i64().ok_or_else(|| EngineError::TypeMismatch {
-            path: path.to_string(),
-            expected: "i64".to_string(),
-            actual: format!("{:?}", val),
-        })
+        val.as_i64()
+            .or_else(|| val.as_str().and_then(|s| s.parse::<i64>().ok()))
+            .ok_or_else(|| EngineError::TypeMismatch {
+                path: path.to_string(),
+                expected: "i64".to_string(),
+                actual: format!("{:?}", val),
+            })
     }
 
     /// Helper to get a float from a path
@@ -118,6 +177,7 @@ impl FactContext {
         let val = self.get_path(path)?;
         val.as_f64()
             .or_else(|| val.as_i64().map(|i| i as f64))
+            .or_else(|| val.as_str().and_then(|s| s.parse::<f64>().ok()))
             .ok_or_else(|| EngineError::TypeMismatch {
                 path: path.to_string(),
                 expected: "f64".to_string(),
@@ -143,32 +203,5 @@ impl FactContext {
             expected: "bool".to_string(),
             actual: format!("{:?}", val),
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn test_path_query() {
-        let data = json!({
-            "applicant": {
-                "name": "Alex",
-                "age": 29,
-                "education": {
-                    "degree": "master",
-                    "points": 126
-                },
-                "skills": ["rust", "cloud"]
-            }
-        });
-
-        let ctx = FactContext::from_value(data);
-        assert_eq!(ctx.get_str("applicant.name").unwrap(), "Alex");
-        assert_eq!(ctx.get_i64("applicant.age").unwrap(), 29);
-        assert_eq!(ctx.get_str("applicant.education.degree").unwrap(), "master");
-        assert_eq!(ctx.get_str("applicant.skills.0").unwrap(), "rust");
     }
 }

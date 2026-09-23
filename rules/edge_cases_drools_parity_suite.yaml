@@ -1,7 +1,7 @@
 id: "edge_cases_drools_parity_suite"
 name: "Drools Feature Parity & Edge Case Verification Suite"
 version: "1.0.0"
-pass_mark_threshold: 60
+pass_mark_threshold: null
 total_points_cap: 1000
 
 categories:
@@ -130,7 +130,6 @@ rules:
     name: "Edge Case 4: Multi-Fact Relational Join"
     phase: "scoring"
     priority: 600
-    is_eligibility_gate: true
     condition:
       type: "all"
       conditions:

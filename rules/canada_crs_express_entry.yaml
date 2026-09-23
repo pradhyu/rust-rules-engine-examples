@@ -326,6 +326,60 @@ rules:
           default: 0
         reason: "Core Human Capital education points with spouse."
 
+  - id: "crs_first_language_married"
+    name: "First Official Language Points (Married Applicant with Spouse)"
+    phase: "scoring"
+    priority: 500
+    condition:
+      type: "compare"
+      path: "applicant.marital_status"
+      op: "in"
+      value: ["married", "common_law"]
+    actions:
+      - type: "award_points"
+        category: "core_human_capital"
+        formula:
+          type: "language_clb_band"
+          reading_path: "applicant.language.first_official.clb_reading"
+          writing_path: "applicant.language.first_official.clb_writing"
+          listening_path: "applicant.language.first_official.clb_listening"
+          speaking_path: "applicant.language.first_official.clb_speaking"
+          band_scores:
+            "10": 32
+            "9": 29
+            "8": 22
+            "7": 16
+            "6": 8
+            "5": 5
+            "4": 5
+        reason: "Per-ability first language CLB scores with spouse (Max 32/ability, 128 total)."
+
+  - id: "crs_canadian_experience_married"
+    name: "Canadian Work Experience (Married Applicant with Spouse)"
+    phase: "scoring"
+    priority: 500
+    condition:
+      type: "compare"
+      path: "applicant.marital_status"
+      op: "in"
+      value: ["married", "common_law"]
+    actions:
+      - type: "award_points"
+        category: "core_human_capital"
+        formula:
+          type: "lookup"
+          path: "applicant.work_experience.domestic_years"
+          mapping:
+            "1": 35
+            "2": 46
+            "3": 56
+            "4": 63
+            "5": 70
+            "6": 70
+            "7": 70
+          default: 0
+        reason: "Canadian domestic work experience points with spouse (Max 70 pts)."
+
   - id: "crs_spouse_education"
     name: "Spouse Education Level"
     phase: "scoring"
