@@ -29,7 +29,8 @@ An educational reference project showcasing **idiomatic Rust best practices** fo
 ## 📚 Key Documents
 
 * **[SPECIFICATION.md](file:///home/pkshrestha/git/rust-rules-engine-examples/SPECIFICATION.md)** — The complete technical specification covering AST grammar, multi-phase execution lifecycles, and domain rule designs.
-* **[DROOLS_PARITY_MATRIX.md](file:///home/pkshrestha/git/rust-rules-engine-examples/docs/DROOLS_PARITY_MATRIX.md)** — Comprehensive 30+ feature matrix classifying de facto built-in capabilities vs. advanced Drools features requiring custom extensions.
+* **[DROOLS_PARITY_MATRIX.md](file:///home/pkshrestha/git/rust-rules-engine-examples/docs/DROOLS_PARITY_MATRIX.md)** — Comprehensive 30+ feature matrix classifying de facto built-in capabilities vs. advanced Drools features.
+* **[SPRING_BOOT_MIGRATION_CONFIG_DI.md](file:///home/pkshrestha/git/rust-rules-engine-examples/docs/SPRING_BOOT_MIGRATION_CONFIG_DI.md)** — Architectural guide on migrating Spring Boot properties (`@Value`, `@ConfigurationProperties`) and DI (`@Autowired`) to idiomatic Rust.
 
 
 ---
